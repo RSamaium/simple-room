@@ -4,12 +4,16 @@ import { useStore } from '@nanostores/vue'
 
 const $room = useStore(room)
 
-const increment = () => World.action('increment').catchError((err) => {
-   console.log(err)
+room.listen(() => {
+  
 })
+
+const increment = () => World.action('increment')
 </script>
 
 <template>
   <h1>{{ $room.count }}</h1>
   <button @click="increment">Increment</button>
+
+  <div v-for="user in $room.users">{{ user.isMe() }}</div>
 </template>

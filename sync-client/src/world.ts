@@ -2,11 +2,14 @@ import msgpack from 'msgpack-lite'
 import merge from 'lodash.mergewith'
 import { BehaviorSubject } from 'rxjs'
 import { room } from './store'
+import { Collection } from './collection'
+import { User } from './user'
 
-class WorldClass {
+export class WorldClass {
     socket: any
-    userId: string | null = null
+    static userId: string | null = null
     private obs$: BehaviorSubject<any> = new BehaviorSubject({})
+    private users: Collection<any> = new Collection(User)
 
     get value() {
         return this.obs$.asObservable()
@@ -33,7 +36,7 @@ class WorldClass {
     listen(socket, transformData?: Function) {
         this.socket = socket
         this.socket.on('uid', (response) => {
-            this.userId = response
+            WorldClass.userId = response
         })
         this.socket.on('w', (response) => {
             const bufView = new Uint8Array(response)
@@ -48,20 +51,24 @@ class WorldClass {
                     time
                 }) 
             }
+            
             let mergeData = merge(this.obs$.value.data || {}, data, (objValue, srcValue) => {
                 if (typeof srcValue == 'object' && srcValue != null && Object.values(srcValue).length == 0) {
                     return {}
                 }
             })
+
+            if (data.users) {
+                mergeData.users = this.users.detectChanges(mergeData.users)
+            }
+            
             this.obs$.next({
                 roomId, 
                 data: mergeData,
                 partial: data,
                 time
             })
-            for (let key in data) {
-                room.setKey(key, data[key])
-            }
+            room.set({...mergeData})
         })
         return this
     }

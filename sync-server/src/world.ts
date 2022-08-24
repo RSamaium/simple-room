@@ -39,32 +39,14 @@ export class WorldClass {
         transport.onInput((id: string, prop: string, value: any) => {
             this.forEachUserRooms(id, (room: RoomClass, user) => {
                 if (room.$inputs && room.$inputs[prop]) {
-                    try {
-                        room[prop] = value
-                    }
-                    catch (err) {
-                        user._socket.emit(':error', {
-                            input: prop,
-                            error: err
-                        }) 
-                    }
+                    room[prop] = value
                 }
             })
         })
         transport.onAction((id: string, name: string, value: any) => {
             this.forEachUserRooms(id, async (room, user) => {
                 if (room.$actions && room.$actions[name]) {
-                    try {
-                        const ret = room[name](user, value)
-                        if (ret?.then) await ret
-                    }
-                    catch (err) {
-                        console.log(err)
-                        user._socket.emit(':error', {
-                            action: name,
-                            error: err
-                        })
-                    }
+                    room[name](user, value)
                 }
             })
         })
@@ -153,14 +135,29 @@ export class WorldClass {
         Transmitter.clear()
     }
 
-    connectUser(socket, id: string): User {
+    /**
+     * Connect a user
+     * 
+     * @method connectUser()
+     * @param {object} socket 
+     * @param {id} userId 
+     * @returns {User}
+     */
+    connectUser<T = User>(socket, id: string): T {
         const user = new this.userClass()
         user.id = id
         socket.emit('uid', id)
         this.setUser(user, socket)
-        return user
+        return user as any
     }
 
+    /**
+     * Removes the user from all rooms and removes him from the world
+     * 
+     * @method disconnectUser()
+     * @param {string} userId 
+     * @returns {void}
+     */
     disconnectUser(userId: string): void {
         this.forEachUserRooms(userId, (room: RoomClass, user: User) => {
             if (room.$leave) room.$leave(user)

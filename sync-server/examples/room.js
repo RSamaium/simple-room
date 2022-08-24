@@ -1,27 +1,20 @@
-import Joi from 'joi'
-
 class Room {
     $schema = {
-        count: {
-            a: {
-                $validate: Joi.number().max(2) 
-            }
-        }
+        count: Number,
+        users: [{ name: String }]
     }
     $actions = {
         increment: true
     }
 
-    count = {
-        a: 0
-    }
-    i = 0
+    count = 0
 
     increment() {
-        this.i++
-       this.count = {
-            a: this.i  
-       }
+       this.count++
+    }
+
+    onJoin(player) {
+        player.name = ''+Math.random()
     }
 }
     

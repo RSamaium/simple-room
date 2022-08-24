@@ -1,3 +1,3 @@
-import { map } from 'nanostores'
+import { atom } from 'nanostores'
 
-export const room = map<any>({})
+export const room = atom<any>({})
