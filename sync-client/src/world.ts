@@ -15,10 +15,21 @@ export class WorldClass {
         return this.obs$.asObservable()
     }
 
+    /**
+     * Join an existing room
+     * 
+     * @param {string} roomId 
+     */
     join(roomId: string) {
         this.socket.emit(':join', roomId)
     }
 
+    /**
+     * Change the value of a property
+     * 
+     * @param {string} prop 
+     * @param {any} value
+     */
     input(prop, value) {
         this.socket.emit(':input', { prop, value })
         return {
@@ -26,6 +37,12 @@ export class WorldClass {
         }
     }
 
+     /**
+     * Do an action
+     * 
+     * @param {string} name 
+     * @param {any} value
+     */
     action(name: string, value) {
         this.socket.emit(':action', { name, value })
         return {
@@ -33,6 +50,12 @@ export class WorldClass {
         }
     }
 
+    /**
+     * Listen to the changes on a socket
+     * 
+     * @param {string} socket 
+     * @return {World}
+     */
     listen(socket, transformData?: Function) {
         this.socket = socket
         this.socket.on('uid', (response) => {
