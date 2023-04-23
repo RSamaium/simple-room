@@ -1,12 +1,12 @@
 {
   "name": "simple-room-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "./dist/simple-room-client.umd.cjs",
-  "module": "./dist/simple-room-client.js",
+  "module": "./lib/index.js",
   "exports": {
     ".": {
-      "import": "./dist/simple-room-client.js",
+      "import": "./lib/index.js",
       "require": "./dist/simple-room-client.umd.cjs"
     }
   },
@@ -19,7 +19,9 @@
     "dev": "vite"
   },
   "files": [
-    "dist"
+    "dist",
+    "lib",
+    "src"
   ],
   "type": "module",
   "keywords": [],

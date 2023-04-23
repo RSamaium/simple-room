@@ -2264,18 +2264,12 @@ const wn = class {
     return this.socket = r, this.socket.on("uid", (t) => {
       wn.userId = t;
     }), this.socket.on("w", (t) => {
-      const n = new Uint8Array(t), o = mr.decode(n), [a, f, y] = o;
-      this.obs$.value.roomId != a && this.obs$.next({
-        roomId: a,
-        data: {},
-        partial: {},
-        time: f
-      });
-      let p = Lo(this.obs$.value.data || {}, y, (c, l) => {
+      const n = new Uint8Array(t), o = mr.decode(n), [a, f, y] = o, d = this.obs$.value.roomId;
+      let p = {};
+      d == a ? (y.join = !1, p = Lo({ ...this.obs$.value.data || {} }, y, (c, l) => {
         if (typeof l == "object" && l != null && Object.values(l).length == 0)
           return {};
-      });
-      y.users && (p.users = this.users.detectChanges(p.users)), this.obs$.next({
+      })) : p = y, y.users && (p.users = this.users.detectChanges(p.users)), this.obs$.next({
         roomId: a,
         data: p,
         partial: y,

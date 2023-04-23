@@ -66,31 +66,32 @@ export class WorldClass {
             const decode = msgpack.decode(bufView)
             const [roomId, time, data] = decode
             const lastRoomId = this.obs$.value.roomId 
-            if (lastRoomId != roomId) {
-                this.obs$.next({
-                    roomId, 
-                    data: {},
-                    partial: {},
-                    time
-                }) 
+            let mergeData: any = {}
+            
+            if (lastRoomId == roomId) {
+                data.join = false
+                mergeData = merge({...(this.obs$.value.data || {})}, data, (objValue, srcValue) => {
+                    if (typeof srcValue == 'object' && srcValue != null && Object.values(srcValue).length == 0) {
+                        return {}
+                    }
+                })
+            }
+            else {
+                // not merge 
+                mergeData = data
             }
             
-            let mergeData = merge(this.obs$.value.data || {}, data, (objValue, srcValue) => {
-                if (typeof srcValue == 'object' && srcValue != null && Object.values(srcValue).length == 0) {
-                    return {}
-                }
-            })
-
             if (data.users) {
                 mergeData.users = this.users.detectChanges(mergeData.users)
             }
-            
+
             this.obs$.next({
                 roomId, 
                 data: mergeData,
                 partial: data,
                 time
             })
+
             room.set({...mergeData})
         })
         return this
