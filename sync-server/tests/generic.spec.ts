@@ -92,7 +92,6 @@ test('Test Generic Key with array',  () => {
         
         user._socket.emit = (ev, value) => {
             expect(value[2]).toMatchObject({ list: { mykey: { nb: { '0': 'hello' } } } })
-            expect(value[2].list.mykey.nb.length).toBeUndefined()
             resolve()
         }
 

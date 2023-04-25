@@ -29,8 +29,10 @@ test('Get All after enter in room', async () => {
     }
     const room =  World.addRoom('room', Room)
     await testSend(room)
+    room.users['test'].name = 'myname'
     room.users['test'].private = 'key1'
     const value: any = await testSend(room, 'test2')
+    room.users['test2'].name = 'myname2'
     room.users['test2'].private = 'key2'
     const users: any = Object.values(value[2].users)
 
