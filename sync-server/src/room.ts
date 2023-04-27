@@ -166,6 +166,10 @@ export class Room {
                         }
                         else if (infoDict == GENERIC_KEY_SCHEMA) {
                             newObj = {}
+                            // reset the object
+                            if (Object.keys(val).length == 0) {
+                                newObj['$reset'] = true
+                            }
                             for (let key in val) {
                                 const item = val[key]
                                 if (typeof item == 'string' || 

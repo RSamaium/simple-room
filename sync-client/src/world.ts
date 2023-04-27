@@ -67,12 +67,20 @@ export class WorldClass {
             const [roomId, time, data] = decode
             const lastRoomId = this.obs$.value.roomId 
             let mergeData: any = {}
-            
+            let resetProps: string[] = []
+
             if (lastRoomId == roomId) {
                 data.join = false
-                mergeData = merge({...(this.obs$.value.data || {})}, data, (objValue, srcValue) => {
-                    if (typeof srcValue == 'object' && srcValue != null && Object.values(srcValue).length == 0) {
-                        return {}
+                mergeData = merge({...(this.obs$.value.data || {})}, data, (objValue, srcValue, key, object, source, stack) => {
+                    if (srcValue != null && typeof srcValue == 'object') {
+                        if (Object.values(srcValue).length == 0) {
+                            return {}
+                        }
+                        if (srcValue.$reset) {
+                            resetProps.push(key)
+                            delete srcValue.$reset
+                            return srcValue
+                        }
                     }
                 })
             }
@@ -89,7 +97,8 @@ export class WorldClass {
                 roomId, 
                 data: mergeData,
                 partial: data,
-                time
+                time,
+                resetProps
             })
 
             room.set({...mergeData})
