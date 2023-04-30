@@ -209,7 +209,7 @@ export class Room {
                 deleteProperty(target, key) {
                     const { fullPath: p, infoDict } = getInfoDict(path, key, dictPath)
                     delete target[key]
-                    if (infoDict) self.detectChanges(room, undefined, p)
+                    if (infoDict) self.detectChanges(room, null, p)
                     return true
                 }
             })
@@ -307,10 +307,10 @@ export class Room {
         return newObj
     }
 
-    detectChanges(room: RoomClass, obj: Object | undefined, path: string): void {   
+    detectChanges(room: RoomClass, obj: Object | null, path: string): void {   
         
         // If after changing a room, we continue to use the wrong player instance, we ignore the changes made on an old proxy 
-        if (obj != undefined) {
+        if (obj != null) {
             const [prop, userId] = path.split('.')
             if (prop == 'users') {
                 if (!room.users[userId]) {
