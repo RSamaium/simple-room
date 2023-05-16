@@ -1,6 +1,6 @@
 {
   "name": "simple-room",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -8,9 +8,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-esm-fix --target='lib/*.js'",
     "watch": "tsc -w",
-    "test": "jest"
+    "test": "vitest"
   },
   "files": [
     "lib",
@@ -20,8 +20,6 @@
   "author": "Samuel Ronce",
   "license": "MIT",
   "dependencies": {
-    "@babel/preset-env": "7.21.4",
-    "@babel/preset-typescript": "7.21.4",
     "@rpgjs/common": "^3.3.2",
     "get-value": "3.0.1",
     "msgpack-lite": "0.1.26",
@@ -29,10 +27,10 @@
     "set-value": "4.1.0"
   },
   "devDependencies": {
-    "@types/jest": "29.5.1",
-    "jest": "29.5.0",
-    "ts-jest": "29.1.0",
-    "typescript": "^5.0.4"
+    "tsc-esm-fix": "^2.20.14",
+    "typescript": "^5.0.4",
+    "vitest": "^0.31.0"
   },
-  "gitHead": "7bb0326cc3216764a4bfc86f53e7b24464a2040f"
+  "gitHead": "7bb0326cc3216764a4bfc86f53e7b24464a2040f",
+  "type": "module"
 }

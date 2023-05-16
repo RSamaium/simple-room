@@ -2,6 +2,7 @@ import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import { testSend } from './fixture'
 import { EventEmitter } from '@rpgjs/common'
+import { beforeEach, test, expect, describe } from 'vitest'
 
 let room: any
 

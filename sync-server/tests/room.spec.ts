@@ -2,6 +2,7 @@ import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import { EventEmitter } from '@rpgjs/common'
 import { testSend } from './fixture'
+import { beforeEach, test, expect } from 'vitest'
 
 beforeEach(() => {
     World.transport(new EventEmitter())
