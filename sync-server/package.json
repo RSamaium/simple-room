@@ -8,7 +8,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc && tsc-esm-fix --target='lib/*.js'",
+    "build": "tsc && tsc-esm-fix --target='lib/**/*.js'",
     "watch": "tsc -w",
     "test": "vitest"
   },
