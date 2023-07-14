@@ -30,6 +30,7 @@ export interface RoomClass {
     $join?: (user: User) => void
     $leave?: (user: User) => void
     $currentState?: () => Object
+    $setCurrentState?: (path: string, value: any) => void
     $clearCurrentState?: () => void
     $setSchema: (schema: any) => void
     $patchSchema: (schema: any) => void

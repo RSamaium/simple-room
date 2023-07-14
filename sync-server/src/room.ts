@@ -178,7 +178,7 @@ export class Room {
                                 else {
                                     pathEffect = propEffect
                                 }
-                                set(self.memoryObject, pathEffect, get(room, pathEffect))
+                                self.editMemoryObject(pathEffect, room)
                             }
                         }
                         let newObj
@@ -287,6 +287,9 @@ export class Room {
         }
 
         room.$currentState = () => this.memoryObject
+        room.$setCurrentState = (path: string, value?) => {
+            this.editMemoryObject(path, value === undefined ? room : value)
+        }
         room.$clearCurrentState = () => {
             this.memoryObject = {}
         }
@@ -340,7 +343,7 @@ export class Room {
             }
         }
 
-        set(this.memoryObject, path, obj)
+        this.editMemoryObject(path, obj)
         set(this.memoryTotalObject, path, obj)
 
         if (this.proxyRoom['onChanges']) this.proxyRoom['onChanges'](this.memoryObject)
@@ -351,5 +354,14 @@ export class Room {
             ...World.changes.value,
             [id]: room
         })
+    }
+
+    editMemoryObject(path: string, roomOrValue: any): void {
+        if (roomOrValue && typeof roomOrValue == 'object' && '$currentState' in roomOrValue) {
+            set(this.memoryObject, path, get(roomOrValue, path))
+        }
+        else {
+            set(this.memoryObject, path, roomOrValue)
+        }
     }
 }

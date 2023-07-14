@@ -97,3 +97,77 @@ test('Not listen properties', () => {
     const packet =  Transmitter.getPackets(room)
     expect(packet).toBeUndefined()
 })
+
+test('change current state', () => {
+    class Room { 
+        $schema = {
+            position: {
+                x: Number,
+                y: Number
+            }
+        }
+        position = {
+            x: 1,
+            y: 2,
+            z: 0
+        }
+    }
+    const room: any =  World.addRoom('room', Room)
+   
+    return new Promise(async (resolve: any, reject) => {
+        await testSend(room)
+        const user = room.users['test']
+
+        room.$setCurrentState('position.z', 5)
+
+        user._socket.emit = (ev, value) => {
+            try {
+                expect(value[2]).toMatchObject({ position: { z: 5 }})
+                resolve()
+            }
+            catch (e) {
+                reject(e)
+            }
+        }
+
+        World.send()
+    })
+})
+
+test('change current state', () => {
+    class Room { 
+        $schema = {
+            position: {
+                x: Number,
+                y: Number
+            }
+        }
+        position = {
+            x: 1,
+            y: 2,
+            z: 5
+        }
+    }
+    const room: any =  World.addRoom('room', Room)
+   
+    return new Promise(async (resolve: any, reject) => {
+        const value: any = await testSend(room)
+        const user = room.users['test']
+
+        expect(value[2].position.z).toBeUndefined()
+
+        room.$setCurrentState('position.z')
+
+        user._socket.emit = (ev, value) => {
+            try {
+                expect(value[2]).toMatchObject({ position: { z: 5 }})
+                resolve()
+            }
+            catch (e) {
+                reject(e)
+            }
+        }
+
+        World.send()
+    })
+})
