@@ -59,7 +59,7 @@ test('Test with extra properties', async () => {
         }
     }
     const value: any = await testSend(room)
-    expect(value[2].keys).toMatchObject({ a: { public: 5 }})
+    expect(value[2].keys).toMatchObject({ a: { public: 5 } })
 })
 
 test('Change with extra properties', async () => {
@@ -78,7 +78,7 @@ test('Change with extra properties', async () => {
         private: 'other'
     }
     const value: any = await testSend(room)
-    expect(value[2].keys).toMatchObject({ a: { public: 10 }})
+    expect(value[2].keys).toMatchObject({ a: { public: 10 } })
 })
 
 describe('Snapshot', () => {
@@ -102,9 +102,8 @@ describe('Snapshot', () => {
             }
         }
         room = World.addRoom('room', Room)
-
     })
-    
+
     test('Snapshot Room', async () => {
         await testSend(room)
         const user = room.users['test']
@@ -134,5 +133,93 @@ describe('Snapshot', () => {
         expect(snapshot.name).toBe('frank')
         expect(snapshot.secret).toBe('aaa')
         expect(snapshot.items[0]).toHaveProperty('info', 'bbb')
+    })
+})
+
+describe('Sync properties dependencies', () => {
+    test('dependencies is sync', () => {
+        class Room {
+            $schema = {
+                a: {
+                    $effects: ['result']
+                },
+                b: Number
+            }
+
+            a = 1
+            b = 2
+
+            get result() {
+                return this.a + this.b
+            }
+        }
+        room = World.addRoom('room', Room)
+
+        return new Promise(async (resolve: any, reject) => {
+            await testSend(room)
+            const user = room.users['test']
+
+            room.a = 10
+
+            user._socket.emit = (ev, value) => {
+                try {
+                    const object = value[2]
+                    expect(object.result).toBeDefined()
+                    expect(object.result).toBe(12)
+                    resolve()
+                }
+                catch (e) {
+                    reject(e)
+                }
+            }
+
+            World.send()
+        })
+    })
+
+    test('Test object dependencies', async () => {
+
+        class UserClass {
+            name = 'test'
+
+            get fullname() {
+                return this.name + ' yo'
+            }
+        }
+
+        World.setUserClass(UserClass)
+
+        class Room {
+            $schema = {
+                users: [{
+                    name: {
+                        $effects: ['$this.fullname']
+                    }
+                }]
+            }
+        }
+        room = World.addRoom('room', Room)
+
+        return new Promise(async (resolve: any, reject) => {
+            await testSend(room)
+            const user = room.users['test']
+
+            user.name = 'frank'
+
+            user._socket.emit = (ev, value) => {
+                try {
+                    const object = value[2].users.test
+                    expect(object.fullname).toBeDefined()
+                    expect(object.name).toBe('frank')
+                    expect(object.fullname).toBe('frank yo')
+                    resolve()
+                }
+                catch (e) {
+                    reject(e)
+                }
+            }
+
+            World.send()
+        })
     })
 })

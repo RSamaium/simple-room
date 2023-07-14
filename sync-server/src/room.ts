@@ -20,7 +20,8 @@ export class Room {
         return obj.$default !== undefined || 
             obj.$syncWithClient !== undefined || 
             obj.$permanent !== undefined ||
-            obj.$validate !== undefined
+            obj.$validate !== undefined ||
+            obj.$effects !== undefined
         }
 
     static toDict(schema, room?) {
@@ -160,6 +161,26 @@ export class Room {
                         return true
                     }
                     if (infoDict) {
+                        if (infoDict.$effects) {
+                            for (let propEffect of infoDict.$effects) {
+                                let pathEffect = ''
+                                if (propEffect.startsWith('$this')) {
+                                    // replace last property in string. Example: users.test.name by users.test.fullname
+                                    if (p) {
+                                        const pSplit = p.split('.')
+                                        pSplit[pSplit.length - 1] = propEffect.replace('$this.', '')
+                                        pathEffect = pSplit.join('.')
+                                    }
+                                    else {
+                                        pathEffect = propEffect.replace('$this.', '')
+                                    }
+                                }
+                                else {
+                                    pathEffect = propEffect
+                                }
+                                set(self.memoryObject, pathEffect, get(room, pathEffect))
+                            }
+                        }
                         let newObj
                         if (Utils.isObject(infoDict) && val != null && !Room.hasExtraProp(infoDict)) {
                             newObj = Room.extractObjectOfRoom(val, infoDict)
