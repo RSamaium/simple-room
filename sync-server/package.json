@@ -1,6 +1,6 @@
 {
   "name": "simple-room",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -20,11 +20,10 @@
   "author": "Samuel Ronce",
   "license": "MIT",
   "dependencies": {
-    "@rpgjs/common": "^3.3.2",
+    "@rpgjs/common": "^4.0.0-beta.19",
     "get-value": "3.0.1",
     "msgpack-lite": "0.1.26",
-    "rxjs": "7.8.0",
-    "set-value": "4.1.0"
+    "rxjs": "7.8.0"
   },
   "devDependencies": {
     "tsc-esm-fix": "^2.20.14",

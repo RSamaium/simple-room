@@ -1,11 +1,13 @@
-import  get from 'get-value'
-import  set from 'set-value'
+import get from 'get-value'
+import { Utils as CommonUtils } from '@rpgjs/common'
 import { Utils, GENERIC_KEY_SCHEMA } from './utils'
 import { Transmitter } from './transmitter'
 import { Packet } from './packet'
 import { RoomClass } from './interfaces/room.interface';
 import { User } from './rooms/default'
 import { World } from './world'
+
+const { set } = CommonUtils
 
 export class Room {
 
@@ -15,14 +17,14 @@ export class Room {
     private permanentObject: string[] = []
 
     static readonly propNameUsers: string = 'users'
-    
+
     static hasExtraProp(obj: any) {
-        return obj.$default !== undefined || 
-            obj.$syncWithClient !== undefined || 
+        return obj.$default !== undefined ||
+            obj.$syncWithClient !== undefined ||
             obj.$permanent !== undefined ||
             obj.$validate !== undefined ||
             obj.$effects !== undefined
-        }
+    }
 
     static toDict(schema, room?) {
         const dict = {}
@@ -31,7 +33,7 @@ export class Room {
         function toDict(obj, path = '') {
             for (let prop in obj) {
                 const val = obj[prop]
-                let p =  (path ? path + '.' : '') + prop
+                let p = (path ? path + '.' : '') + prop
                 if (Array.isArray(val)) {
                     dict[p] = GENERIC_KEY_SCHEMA
                     p += '.' + GENERIC_KEY_SCHEMA
@@ -76,7 +78,7 @@ export class Room {
     private join(user: User, room: RoomClass) {
         if (!user._rooms) user._rooms = []
         user._rooms.push(room.id)
-        if (!user.id) user.id = Utils.generateId() 
+        if (!user.id) user.id = Utils.generateId()
         if (room['onJoin']) room['onJoin'](user)
         //
         if (this.getUsersLength(room) == 1) {
@@ -129,9 +131,9 @@ export class Room {
 
         const getInfoDict = (path, key, dictPath): { fullPath: string, genericPath: string, infoDict: any } => {
             const basePath = dict[dictPath]
-            const p: string = (path ? path + '.' : '') + key as string   
-            const genericPath = (dictPath ? dictPath + '.' : '') + 
-            (basePath == GENERIC_KEY_SCHEMA ? GENERIC_KEY_SCHEMA  : key as string )
+            const p: string = (path ? path + '.' : '') + key as string
+            const genericPath = (dictPath ? dictPath + '.' : '') +
+                (basePath == GENERIC_KEY_SCHEMA ? GENERIC_KEY_SCHEMA : key as string)
             return {
                 fullPath: p,
                 genericPath,
@@ -143,7 +145,7 @@ export class Room {
             return new Proxy(object, {
                 set(target, key: string, val, receiver) {
                     const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
-                    if (typeof val == 'object' && infoDict && val != null ) {
+                    if (typeof val == 'object' && infoDict && val != null) {
                         const valProxy = deepProxy(val, p, genericPath)
                         if (path == 'users') {
                             World.users[key]['proxy'] = valProxy
@@ -193,8 +195,8 @@ export class Room {
                             }
                             for (let key in val) {
                                 const item = val[key]
-                                if (typeof item == 'string' || 
-                                    typeof item == 'number' || 
+                                if (typeof item == 'string' ||
+                                    typeof item == 'number' ||
                                     typeof item == 'boolean') {
                                     newObj[key] = item
                                     continue
@@ -218,7 +220,7 @@ export class Room {
                             return val
                         }
                         const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
-                          if (typeof val == 'object' && infoDict) {
+                        if (typeof val == 'object' && infoDict) {
                             val = deepProxy(val, p, genericPath)
                         }
                         return val
@@ -242,12 +244,12 @@ export class Room {
         room.id = id
         room.$dict = {}
         if (!room.$schema) room.$schema = {}
-        if (!room.$schema.users) room.$schema.users = [{id: String}]
+        if (!room.$schema.users) room.$schema.users = [{ id: String }]
         if (!room.$inputs) room.$inputs = {}
-        if (!room.users) room.users = {} 
+        if (!room.users) room.users = {}
         if (room.$inputs) this.addInputs(room, room.$inputs)
 
-        room.$detectChanges = () => { 
+        room.$detectChanges = () => {
             //this.detectChanges(room)
         }
 
@@ -331,8 +333,8 @@ export class Room {
         return newObj
     }
 
-    detectChanges(room: RoomClass, obj: Object | null, path: string): void {   
-        
+    detectChanges(room: RoomClass, obj: Object | null, path: string): void {
+
         // If after changing a room, we continue to use the wrong player instance, we ignore the changes made on an old proxy 
         if (obj != null) {
             const [prop, userId] = path.split('.')
@@ -358,10 +360,10 @@ export class Room {
 
     editMemoryObject(path: string, roomOrValue: any): void {
         if (roomOrValue && typeof roomOrValue == 'object' && '$currentState' in roomOrValue) {
-            set(this.memoryObject, path, get(roomOrValue, path))
+            set(this.memoryObject, path, get(roomOrValue, path), true)
         }
         else {
-            set(this.memoryObject, path, roomOrValue)
+            set(this.memoryObject, path, roomOrValue, true)
         }
     }
 }

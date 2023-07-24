@@ -23,7 +23,7 @@ beforeEach(() => {
     room = World.addRoom('room', Room)
 })
 
-test('Test Generic Key 1',  () => {
+test('Test Generic Key 1', () => {
     return new Promise(async (resolve: any) => {
         room.list = {}
         await testSend(room)
@@ -34,39 +34,39 @@ test('Test Generic Key 1',  () => {
             public: 'p',
             secret: 's'
         }
-        
+
         user._socket.emit = (ev, value) => {
             expect(value[2]).toMatchObject({ list: { mykey: { public: 'p' } } })
             resolve()
         }
 
         World.send()
-   })
+    })
 })
 
-test('Test Generic Key 3',  () => {
+test('Test Generic Key 3', () => {
     return new Promise(async (resolve: any) => {
         await testSend(room)
 
         const user = room.users['test']
 
-        room.list = { 
+        room.list = {
             mykey: {
                 public: 'p',
                 secret: 's'
             }
         }
-        
+
         user._socket.emit = (ev, value) => {
             expect(value[2]).toMatchObject({ list: { mykey: { public: 'p' } } })
             resolve()
         }
 
         World.send()
-   })
+    })
 })
 
-test('Test Generic Key with array',  () => {
+test('Test Generic Key with array', () => {
     return new Promise(async (resolve: any) => {
 
         class Room {
@@ -78,7 +78,7 @@ test('Test Generic Key with array',  () => {
 
             list = {}
         }
-    
+
         room = World.addRoom('room', Room)
 
         room.list.mykey = {
@@ -90,12 +90,46 @@ test('Test Generic Key with array',  () => {
         const user = room.users['test']
 
         room.list.mykey.nb.push('hello')
-        
+
         user._socket.emit = (ev, value) => {
             expect(value[2]).toMatchObject({ list: { mykey: { nb: { '0': 'hello' } } } })
             resolve()
         }
 
         World.send()
-   })
+    })
+})
+
+
+test('Test Generic Key with array / multi push', async () => {
+    class UserClass {
+        items = []
+    }
+
+    World.setUserClass(UserClass)
+
+    class Room {
+        $schema = {
+            users: [{
+                items: [{
+                    nb: Number,
+                    id: Number
+                }]
+            }]
+        }
+    }
+
+    room = World.addRoom('room', Room)
+
+    await testSend(room)
+
+    room.users['test'].items.push({ id: 1, nb: 1 })
+    room.users['test'].items.push({ id: 2, nb: 1 })
+
+    World.send()
+
+    room.users['test'].items[1].nb += 2
+
+    expect(room.$currentState()).toHaveProperty('users.test.items.1.nb', 3)
+    expect(room.$currentState().users.test.items).not.instanceOf(Array)
 })
