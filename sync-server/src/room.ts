@@ -1,5 +1,4 @@
 import get from 'get-value'
-import { Utils as CommonUtils } from '@rpgjs/common'
 import { Utils, GENERIC_KEY_SCHEMA } from './utils'
 import { Transmitter } from './transmitter'
 import { Packet } from './packet'
@@ -7,7 +6,7 @@ import { RoomClass } from './interfaces/room.interface';
 import { User } from './rooms/default'
 import { World } from './world'
 
-const { set } = CommonUtils
+const { set } = Utils
 
 export class Room {
 
