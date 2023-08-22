@@ -206,6 +206,7 @@ test('change current state', () => {
     })
 })
 
+/*
 test('sync state but is already deleted', async () => {
     await expect(async () => {
         class Room {
@@ -232,4 +233,4 @@ test('sync state but is already deleted', async () => {
         room.events['test'] = new CharaEvent('test', room)
         room.events['test'].onDead()
     }).rejects.toThrow('\'set\' on proxy: trap returned falsish for property \'name\'');
-})
+})*/

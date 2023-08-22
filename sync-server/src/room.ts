@@ -144,9 +144,10 @@ export class Room {
             return new Proxy(object, {
                 set(target, key: string, val, receiver) {
                     const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
-                    if (target._isDeleted) {
-                        return false
-                    }
+                    // TODO: block set if deleted. Not apply in player
+                    // if (target._isDeleted) {
+                    //     return false
+                    // }
                     if (typeof val == 'object' && infoDict && val != null) {
                         const valProxy = deepProxy(val, p, genericPath)
                         if (path == 'users') {
@@ -235,7 +236,7 @@ export class Room {
                 },
                 deleteProperty(target, key) {
                     const { fullPath: p, infoDict } = getInfoDict(path, key, dictPath)
-                    target[key]._isDeleted = true
+                    //target[key]._isDeleted = true
                     Reflect.deleteProperty(target, key)
                     if (infoDict) self.detectChanges(room, null, p)
                     return true
