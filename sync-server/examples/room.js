@@ -8,9 +8,11 @@ class Room {
     }
 
     count = 0
+    test = ''
 
-    increment() {
+    increment(player) {
        this.count++
+       console.log(this.$snapshot())
     }
 
     onJoin(player) {

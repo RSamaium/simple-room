@@ -144,12 +144,16 @@ export class Room {
             return new Proxy(object, {
                 set(target, key: string, val, receiver) {
                     const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
+                    if (target._isDeleted) {
+                        return false
+                    }
                     if (typeof val == 'object' && infoDict && val != null) {
                         const valProxy = deepProxy(val, p, genericPath)
                         if (path == 'users') {
                             World.users[key]['proxy'] = valProxy
                         }
                         Reflect.set(target, key, valProxy, receiver)
+                        val = target[key]
                     }
                     else {
                         if (infoDict?.$validate) {
@@ -157,6 +161,7 @@ export class Room {
                             if (error) return true
                         }
                         Reflect.set(target, key, val, receiver)
+                        val = target[key] // Reflect calls the modifiers, so we get the new value
                     }
                     if (key == 'length' && dict[dictPath] == GENERIC_KEY_SCHEMA) {
                         return true
@@ -230,7 +235,8 @@ export class Room {
                 },
                 deleteProperty(target, key) {
                     const { fullPath: p, infoDict } = getInfoDict(path, key, dictPath)
-                    delete target[key]
+                    target[key]._isDeleted = true
+                    Reflect.deleteProperty(target, key)
                     if (infoDict) self.detectChanges(room, null, p)
                     return true
                 }
