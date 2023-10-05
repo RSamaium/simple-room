@@ -12,7 +12,6 @@ class Room {
 
     increment(player) {
        this.count++
-       console.log(this.$snapshot())
     }
 
     onJoin(player) {

@@ -1,6 +1,6 @@
 import { Room } from './room'
 import { Transmitter } from './transmitter'
-import { Transport } from './transports/socket'
+import { Transport, TransportOptions } from './transports/socket'
 import { User } from './rooms/default'
 import { RoomClass } from './interfaces/room.interface'
 import { BehaviorSubject } from 'rxjs'
@@ -29,10 +29,10 @@ export class WorldClass {
      * 
      * @method transport()
      * @param {object} io
-     * @returns {void}
+     * @returns {Transport}
      */
-    transport(io): void {
-        const transport = new Transport(io)
+    transport(io, options: TransportOptions = {}): Transport {
+        const transport = new Transport(io, options)
         transport.onConnected(this.connectUser.bind(this))
         transport.onDisconnected(this.disconnectUser.bind(this))
         transport.onJoin(this.joinRoom.bind(this))
@@ -50,6 +50,7 @@ export class WorldClass {
                 }
             })
         })
+        return transport
     }
 
     /**

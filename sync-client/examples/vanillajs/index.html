@@ -1,5 +1,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js" integrity="sha512-9mpsATI0KClwt+xVZfbcf2lJ8IFBAwsubJ6mI3rtULwyM3fBmQFzj0It4tGqxLOGQwGfJdk/G+fANnxfq9/cew==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="../../dist/simple-room-client.umd.js"></script>
+<script src="../../dist/simple-room-client.umd.cjs"></script>
 
 <div id="count"></div>
 <button id="btn">Increment</button>
@@ -8,6 +8,10 @@
     const { World, room } = SimpleRoom
     const socket = io('localhost:3050')
     World.listen(socket).join('myroom')
+
+    socket.on('disconnect', () => {
+        console.log('disconnected')
+    })
 
     room.listen(() => {
         console.log(room.get())

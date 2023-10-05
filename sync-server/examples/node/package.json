@@ -12,7 +12,8 @@
   "type": "module",
   "dependencies": {
     "joi": "^17.6.0",
-    "socket.io": "^4.5.1"
+    "socket.io": "^4.5.1",
+    "simple-room": "link:simple-room"
   },
   "devDependencies": {
     "nodemon": "^2.0.19"
