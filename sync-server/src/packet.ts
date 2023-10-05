@@ -1,5 +1,7 @@
 import msgpack from 'msgpack-lite'
 
+export type MessageBuffer = [string, number, any]
+
 export class Packet {
     constructor(private data: any, private roomId: string) {}
 
@@ -7,7 +9,7 @@ export class Packet {
         return this.data
     }
     
-    message(otherData: any = {}) {
+    message(otherData: any = {}): MessageBuffer {
         return [this.roomId, Date.now(), { ...this.data, ...otherData }]
     }
 
