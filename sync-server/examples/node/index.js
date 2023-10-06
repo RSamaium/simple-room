@@ -1,8 +1,9 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { World } from 'simple-room';
+import { World, Transmitter } from 'simple-room';
 import Room from './room.js';
 import Player from './player.js'
+
 
 const httpServer = createServer();
 const io = new Server(httpServer, {

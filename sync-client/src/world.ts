@@ -5,6 +5,10 @@ import { room } from './store'
 import { Collection } from './collection'
 import { User } from './user'
 
+type ListenOptions = {
+    encoded?: boolean
+}
+
 export class WorldClass {
     socket: any
     static userId: string | null = null
@@ -56,15 +60,22 @@ export class WorldClass {
      * @param {string} socket 
      * @return {World}
      */
-    listen(socket, transformData?: Function) {
+    listen(socket, options: ListenOptions = {}) {
+        if (options.encoded === undefined) options.encoded = true
+        
         this.socket = socket
         this.socket.on('uid', (response) => {
             WorldClass.userId = response
         })
         this.socket.on('w', (response) => {
-            const bufView = new Uint8Array(response)
-            const decode = msgpack.decode(bufView)
-            const [roomId, time, data] = decode
+
+            if (options.encoded) {
+                const bufView = new Uint8Array(response)
+                response = msgpack.decode(bufView)
+            }
+
+            const [roomId, time, data] = response
+            
             const lastRoomId = this.obs$.value.roomId 
             let mergeData: any = {}
             let resetProps: string[] = []

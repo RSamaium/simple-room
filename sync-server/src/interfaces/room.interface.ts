@@ -39,5 +39,5 @@ export interface RoomClass {
         [key: string]: any
     } | null
 
-    filterEmit?: (user: User, packet: Packet) => Packet | Promise<Packet>
+    $additionalEmitProperties?: (user: User, packet: Packet) => object
 }

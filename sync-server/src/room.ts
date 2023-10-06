@@ -1,4 +1,3 @@
-import get from 'get-value'
 import { Utils, GENERIC_KEY_SCHEMA } from './utils'
 import { Transmitter } from './transmitter'
 import { Packet } from './packet'
@@ -7,10 +6,9 @@ import { User } from './rooms/default'
 import { World } from './world'
 import { NotAuthorized } from './errors/not-authorized';
 
-const { set } = Utils
+const { set, get } = Utils
 
 export class Room {
-
     private proxyRoom: RoomClass
     private memoryTotalObject: object = {}
     private memoryObject: object = {}
@@ -23,12 +21,34 @@ export class Room {
             obj.$syncWithClient !== undefined ||
             obj.$permanent !== undefined ||
             obj.$validate !== undefined ||
-            obj.$effects !== undefined
+            obj.$effects !== undefined || 
+            obj.$type !== undefined
     }
 
     static toDict(schema, room?) {
         const dict = {}
         const permanentObject: string[] = []
+
+        function specialObject(val, p) {
+            if (Room.hasExtraProp(val)) {
+                if (val.$permanent ?? true) permanentObject.push(p)
+                if (room && val.$default !== undefined) {
+                    // TODO
+                    //set(room, p, val.$default)
+                }
+                if (val.$syncWithClient === false) {
+                    return
+                }
+                // Force to take a type (number here - not important) and not object. Otherwise, Proxy will traverse this object from 
+                dict[p] = {
+                    ...val
+                }
+            }
+            else {
+                dict[p] = val
+                toDict(val, p)
+            }
+        }
 
         function toDict(obj, path = '') {
             for (let prop in obj) {
@@ -37,28 +57,16 @@ export class Room {
                 if (Array.isArray(val)) {
                     dict[p] = GENERIC_KEY_SCHEMA
                     p += '.' + GENERIC_KEY_SCHEMA
-                    dict[p] = val[0]
-                    toDict(val[0], p)
-                }
-                else if (Utils.isObject(val)) {
-                    if (Room.hasExtraProp(val)) {
-                        if (val.$permanent ?? true) permanentObject.push(p)
-                        if (room && val.$default !== undefined) {
-                            // TODO
-                            //set(room, p, val.$default)
-                        }
-                        if (val.$syncWithClient === false) {
-                            continue
-                        }
-                        // Force to take a type (number here - not important) and not object. Otherwise, Proxy will traverse this object from 
-                        dict[p] = {
-                            ...val
-                        }
+                    if (Utils.isObject(val[0])) {
+                        specialObject(val[0], p)
                     }
                     else {
-                        dict[p] = val
-                        toDict(val, p)
-                    }
+                        dict[p] = val[0]
+                        toDict(val[0], p)
+                    }  
+                }
+                else if (Utils.isObject(val)) {
+                    specialObject(val, p)
                 }
                 else {
                     permanentObject.push(p)
@@ -165,7 +173,7 @@ export class Room {
                     if (typeof val == 'object' && infoDict && val != null) {
                         const valProxy = deepProxy(val, p, genericPath)
                         if (path == 'users') {
-                            World.users[key]['proxy'] = valProxy
+                            World.users[key]['proxy'] = valProxy 
                         }
                         Reflect.set(target, key, valProxy, receiver)
                         val = target[key]
@@ -304,7 +312,6 @@ export class Room {
             this.leave(user, room)
             delete room.users[user.id]
             delete World.users[user.id]['proxy']
-            //this.detectChanges(room)
         }
 
         room.$currentState = () => this.memoryObject
@@ -345,8 +352,8 @@ export class Room {
             extract(path)
         }
 
-        for (let sheme of schemas) {
-            set(newObj, sheme, get(room, sheme))
+        for (let schema of schemas) {
+            set(newObj, schema, get(room, schema))
         }
 
         return newObj

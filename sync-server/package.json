@@ -20,8 +20,6 @@
   "author": "Samuel Ronce",
   "license": "MIT",
   "dependencies": {
-    "@rpgjs/common": "^4.0.0-rc.2",
-    "get-value": "3.0.1",
     "msgpack-lite": "0.1.26",
     "rxjs": "7.8.1"
   },

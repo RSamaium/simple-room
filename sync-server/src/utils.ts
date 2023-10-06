@@ -37,8 +37,8 @@ export class Utils {
         return paths(obj);
     }
 
-    static generateId() {
-        return '$' + (Date.now().toString(36) + Math.random().toString(36).substr(2, 5))
+    static generateId(n: number = 5) {
+        return Math.random().toString(36).substring(n)
     }
 
     static async resolveValue(value) {
@@ -64,4 +64,18 @@ export class Utils {
             obj)[path[path.length - 1]] = value; // Finally assign the value to the last key
         return obj; // Return the top-level object to allow chaining
     };
+
+    static get(obj, path) {
+        const keys = path.split('.');
+        let current = obj;
+    
+        for (let key of keys) {
+            if (current[key] === undefined) {
+                return undefined;
+            }
+            current = current[key];
+        }
+    
+        return current;
+    }
 }

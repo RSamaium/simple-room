@@ -3,6 +3,7 @@ import { Room } from './room'
 import { Schema, Input } from './decorators'
 import { OnInit, OnJoin, OnLeave } from './interfaces/room.interface'
 import { User } from './user'
+import { Transmitter } from './transmitter'
 
 export { 
     World,
@@ -13,5 +14,6 @@ export {
     OnInit,
     OnJoin,
     OnLeave,
-    User
+    User,
+    Transmitter
 }

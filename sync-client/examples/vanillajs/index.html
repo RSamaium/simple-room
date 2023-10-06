@@ -3,13 +3,24 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="../../dist/simple-room-client.umd.cjs"></script>
 
-<div id="count"></div>
-<button id="btn">Increment</button>
+<button id="bet">Bet</button>
+<button id="fold">Fold</button>
+<pre id="code">
+
+</pre>
+
+
+
 
 <script>
     const { World, room } = SimpleRoom
     const socket = io('localhost:3050')
+    
     World.listen(socket).join('myroom')
+    
+    room.listen(() => {
+        document.getElementById('code').textContent = JSON.stringify(room.get(), null, 2)
+    })
 
     socket.on('disconnect', () => {
         console.log('disconnected')
@@ -23,12 +34,11 @@
         console.error('Connect error', error.message);
     });
 
-    room.listen(() => {
-        console.log(room.get())
-        document.getElementById('count').textContent = room.get().count
+    document.getElementById('bet').addEventListener('click', () => {
+        World.action('bet', 10)
     })
 
-    document.getElementById('btn').addEventListener('click', () => {
-        World.action('increment')
+    document.getElementById('fold').addEventListener('click', () => {
+        World.action('fold')
     })
 </script>
