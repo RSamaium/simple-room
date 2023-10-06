@@ -1,6 +1,7 @@
 import { Packet } from './packet'
 import { RoomClass } from './interfaces/room.interface';
 import { User } from './rooms/default';
+import { CustomError } from './errors/error';
 
 class TransmitterClass {
     
@@ -35,6 +36,10 @@ class TransmitterClass {
         else {
             this.packets = {}
         }
+    }
+
+    error(user: User, error: CustomError): void {
+        user._socket.emit('error', error.toObject())
     }
 
     emit(user: User, packet: Packet, room: RoomClass): void {

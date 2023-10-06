@@ -3,6 +3,7 @@ class Room {
         count: Number,
         users: [{ name: String }]
     }
+
     $actions = {
         increment: true
     }
@@ -14,8 +15,12 @@ class Room {
        this.count++
     }
 
+    onAuth() {
+        return false
+    }
+
     onJoin(player) {
-        player.name = ''+Math.random()
+        player.name =  'test'
     }
 }
     

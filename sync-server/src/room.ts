@@ -5,6 +5,7 @@ import { Packet } from './packet'
 import { RoomClass } from './interfaces/room.interface';
 import { User } from './rooms/default'
 import { World } from './world'
+import { NotAuthorized } from './errors/not-authorized';
 
 const { set } = Utils
 
@@ -74,12 +75,25 @@ export class Room {
         }
     }
 
-    private join(user: User, room: RoomClass) {
-        if (!user._rooms) user._rooms = []
-        user._rooms.push(room.id)
-        if (!user.id) user.id = Utils.generateId()
-        if (room['onJoin']) room['onJoin'](user)
-        //
+    private async join(user: User, room: RoomClass) {
+
+        if (room['onAuth']) {
+            const authBool = await Utils.resolveValue(room['onAuth'](user, user._socket.handshake))
+            if (authBool === false || typeof authBool == 'string') {
+                Transmitter.error(user, new NotAuthorized(authBool))
+                return
+            }
+        }
+
+        room.users[user.id] = user
+        const userProxy = World.users[user.id]['proxy']
+
+        if (!userProxy._rooms) user._rooms = []
+        userProxy._rooms.push(room.id)
+        if (!userProxy.id) user.id = Utils.generateId()
+
+        if (room['onJoin']) room['onJoin'](userProxy)
+
         if (this.getUsersLength(room) == 1) {
             // If it's the first to arrive in the room, we save the default values of the room
             this.memoryTotalObject = Room.extractObjectOfRoom(room, room.$schema)
@@ -88,7 +102,7 @@ export class Room {
             ...this.memoryTotalObject,
             join: true
         }, <string>room.id)
-        Transmitter.emit(user, packet, room)
+        Transmitter.emit(userProxy, packet, room)
     }
 
     private leave(user: User, room: RoomClass): void {
@@ -282,8 +296,7 @@ export class Room {
 
         room.$join = (user: User) => {
             if (user) {
-                room.users[user.id] = user
-                this.join(room.users[user.id], room)
+                this.join(user, room)
             }
         }
 

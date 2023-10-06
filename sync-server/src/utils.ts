@@ -3,7 +3,6 @@ import { Room } from "./room";
 export const GENERIC_KEY_SCHEMA = '@'
 
 export class Utils {
-
     static isObject(val) {
         return typeof val === 'object' && !Array.isArray(val) && val != null
     }
@@ -40,6 +39,13 @@ export class Utils {
 
     static generateId() {
         return '$' + (Date.now().toString(36) + Math.random().toString(36).substr(2, 5))
+    }
+
+    static async resolveValue(value) {
+        if (value instanceof Promise) {
+            return await value
+        }
+        return value
     }
 
     // https://stackoverflow.com/questions/54733539/javascript-implementation-of-lodash-set-method

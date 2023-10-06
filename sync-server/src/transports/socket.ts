@@ -41,10 +41,11 @@ export class Transport extends TransportCommon {
         this.onConnectedCb(socket, id);
     }
 
-    private initializeBandwidthMeasurement() {
-        this.io?.use((socket, next) => {
+    private async initializeBandwidthMeasurement() {
+        const { maxKbpsIncoming, maxKbpsOutgoing } = this.options;
+        this.io?.use(async (socket, next) => {
             const socketId = socket.client.id;
-
+            
             // Intercept incoming messages
             socket.use((packet, nextMiddleware) => {
                 if (packet && packet[1]) {
@@ -53,7 +54,7 @@ export class Transport extends TransportCommon {
 
                     this.updateBandwidthData(socketId, { incoming: data });
                     const kbps = this.calculateKbps(this.bandwidthData[socketId]?.value.incoming || []);
-                    if (this.options.maxKbpsIncoming && kbps > this.options.maxKbpsIncoming) {
+                    if (maxKbpsIncoming && kbps > maxKbpsIncoming) {
                         socket.disconnect();
                         return;
                     }
@@ -71,7 +72,7 @@ export class Transport extends TransportCommon {
 
                 this.updateBandwidthData(socketId, { outgoing: data });
                 const kbps = this.calculateKbps(this.bandwidthData[socketId]?.value.outgoing || []);
-                if (this.options.maxKbpsOutgoing && kbps > this.options.maxKbpsOutgoing) {
+                if (maxKbpsOutgoing && kbps > maxKbpsOutgoing) {
                     socket.disconnect();
                     return;
                 }

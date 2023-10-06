@@ -1,4 +1,6 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js" integrity="sha512-9mpsATI0KClwt+xVZfbcf2lJ8IFBAwsubJ6mI3rtULwyM3fBmQFzj0It4tGqxLOGQwGfJdk/G+fANnxfq9/cew==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"
+    integrity="sha512-9mpsATI0KClwt+xVZfbcf2lJ8IFBAwsubJ6mI3rtULwyM3fBmQFzj0It4tGqxLOGQwGfJdk/G+fANnxfq9/cew=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="../../dist/simple-room-client.umd.cjs"></script>
 
 <div id="count"></div>
@@ -12,6 +14,14 @@
     socket.on('disconnect', () => {
         console.log('disconnected')
     })
+
+    socket.on('error', (errorData) => {
+        console.error('Erreur reçue du serveur:', errorData);
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connect error', error.message);
+    });
 
     room.listen(() => {
         console.log(room.get())

@@ -12,12 +12,9 @@ const io = new Server(httpServer, {
 });
 
 const transport = World.transport(io, {
-  maxKbpsIncoming: 0.2,
+  maxKbpsIncoming: 0.2
 })
 
-setInterval(() => {
-  console.log(transport.getTelemetry())
-}, 1000)
 
 World.setUserClass(Player)
 World.addRoom('myroom', Room)
@@ -25,5 +22,15 @@ World.addRoom('myroom', Room)
 setInterval(() => {
     World.send()
 }, 100) 
+
+httpServer.removeAllListeners("upgrade");
+
+httpServer.on("upgrade", (req, socket, head) => {
+  if (req.url.startsWith("/socket.io/")) {
+    io.engine.handleUpgrade(req, socket, head);
+  } else {
+    socket.destroy();
+  }
+});
 
 httpServer.listen(3050, () => console.log('listening on *:3050'));   
