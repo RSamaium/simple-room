@@ -43,7 +43,7 @@ export class Transport extends TransportCommon {
 
     private async initializeBandwidthMeasurement() {
         const { maxKbpsIncoming, maxKbpsOutgoing } = this.options;
-        this.io?.use(async (socket, next) => {
+        this.io.use?.(async (socket, next) => {
             const socketId = socket.client.id;
             
             // Intercept incoming messages

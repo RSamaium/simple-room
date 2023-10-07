@@ -96,9 +96,9 @@ export class Room {
         room.users[user.id] = user
         const userProxy = World.users[user.id]['proxy']
 
-        if (!userProxy._rooms) user._rooms = []
+        if (!userProxy._rooms) userProxy._rooms = []
         userProxy._rooms.push(room.id)
-        if (!userProxy.id) user.id = Utils.generateId()
+        if (!userProxy.id) userProxy.id = Utils.generateId()
 
         if (room['onJoin']) room['onJoin'](userProxy)
 

@@ -4,6 +4,7 @@ import { Schema, Input } from './decorators'
 import { OnInit, OnJoin, OnLeave } from './interfaces/room.interface'
 import { User } from './user'
 import { Transmitter } from './transmitter'
+import MockSocketIo from './testing/mock-socket'
 
 export { 
     World,
@@ -15,5 +16,6 @@ export {
     OnJoin,
     OnLeave,
     User,
-    Transmitter
+    Transmitter,
+    MockSocketIo,
 }

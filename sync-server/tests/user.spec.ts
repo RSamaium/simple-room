@@ -1,23 +1,16 @@
 import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
-import { EventEmitter } from '@rpgjs/common'
+import MockSocketIo from '../src/testing/mock-socket'
 import { beforeEach, test, expect } from 'vitest'
 
 let event, socket
 
 const CLIENT_ID = 'mock'
 
-class SocketMock extends EventEmitter {
-    client = {
-        id: CLIENT_ID.replace('$$', '')
-    }
-}
-
 beforeEach(() => {
-    event = new EventEmitter()
-    World.transport(event)
-    socket = new SocketMock()
-    event.emit('connection', socket)
+    World.transport(MockSocketIo.serverIo)
+    socket = new MockSocketIo.ClientIo(CLIENT_ID)
+    socket.connection()
     Transmitter.encode = false
 })
 
@@ -30,7 +23,7 @@ test('Test User in World', () => {
 test('Test Room properties', () => {
     class Room {
         $schema = {
-            users: {}
+            users: [{}]
         }
     }
     const room =  World.addRoom('room', Room)
