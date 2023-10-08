@@ -1,6 +1,5 @@
 import { World } from '../src/world'
 import MockSocketIo from '../src/testing/mock-socket'
-import { testSend } from './fixture'
 import { beforeEach, test, expect, vi, describe } from 'vitest'
 import { RoomClass } from '../src/interfaces/room.interface'
 

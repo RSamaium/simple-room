@@ -6,6 +6,7 @@ export type BandwidthData = Record<string, BehaviorSubject<BandwidthSocket>>
 export type TransportOptions = {
     maxKbpsIncoming?: number
     maxKbpsOutgoing?: number
+    clientCanJoinRoom?: boolean
 }
 
 export class Transport extends TransportCommon {
@@ -26,7 +27,7 @@ export class Transport extends TransportCommon {
 
             socket.on(':input', ({ prop, value }) => this.onInputCb(id, prop, value));
             socket.on(':action', ({ name, value }) => this.onActionCb(id, name, value));
-            socket.on(':join', (roomId) => this.onJoinCb(roomId, id));
+            if (options.clientCanJoinRoom) socket.on(':join', (roomId) => this.onJoinCb(roomId, id));
             socket.on('disconnect', () => {
                 this.bandwidthData[id]?.unsubscribe();
                 delete this.bandwidthData[id];

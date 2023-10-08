@@ -27,7 +27,7 @@ test('Test Room properties', () => {
         }
     }
     const room =  World.addRoom('room', Room)
-    socket.emit(':join', 'room')
+    World.joinRoom('room', CLIENT_ID)
     const user = room.users[CLIENT_ID]
     expect(user).toBeDefined()
     expect(user._socket).toBeDefined()
@@ -56,7 +56,7 @@ test('Getall data of room', () => {
         })
 
         const room =  World.addRoom('room', Room) 
-        socket.emit(':join', 'room')
+        World.joinRoom('room', CLIENT_ID)
 
         World.send()
     })
@@ -87,7 +87,7 @@ test('Change Schema', () => {
         })
 
         let room =  World.addRoom('room', Room) 
-        socket.emit(':join', 'room')
+        World.joinRoom('room', CLIENT_ID)
         World.send()
         room = room.$setSchema({
             count: Number,
