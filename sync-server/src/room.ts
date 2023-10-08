@@ -86,13 +86,13 @@ export class Room {
         }
     }
 
-    private async join(user: User, room: RoomClass) {
+    private async join(user: User, room: RoomClass): Promise<boolean> {
 
         if (room['canJoin']) {
-            const authBool = await Utils.resolveValue(room['canJoin'](user, user._socket.handshake))
+            const authBool = await Utils.resolveValue(room['canJoin'](user, user._socket))
             if (authBool === false || typeof authBool == 'string') {
                 Transmitter.error(user, new NotAuthorized(authBool))
-                return
+                return false
             }
         }
 
@@ -114,6 +114,8 @@ export class Room {
             join: true
         }, <string>room.id)
         Transmitter.emit(userProxy, packet, room)
+
+        return true
     }
 
     private leave(user: User, room: RoomClass): void {
@@ -313,16 +315,24 @@ export class Room {
             return this.snapshotUser(room, userId)
         }
 
-        room.$join = (user: User) => {
-            if (user) {
-                this.join(user, room)
+        room.$join = async (user: User | string): Promise<boolean> => {
+            if (typeof user == 'string') {
+                user = World.users[user]
             }
+            if (user) {
+                return this.join(user as any, room)
+            }
+            return false
         }
 
-        room.$leave = (user: User) => {
-            this.leave(user, room)
-            delete room.users[user.id]
-            delete World.users[user.id]['proxy']
+        room.$leave = (user: User | string) => {
+            if (typeof user == 'string') {
+                user = World.users[user]['proxy']
+            }
+            const _user = user as User
+            this.leave(_user, room)
+            delete room.users[_user.id]
+            delete World.users[_user.id]['proxy']
         }
 
         room.$currentState = () => this.memoryObject

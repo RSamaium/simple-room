@@ -14,24 +14,24 @@ export interface OnLeave {
 }
 
 export interface RoomClass {
-    id?: string
+    id: string
     users: {
         [userId: string]: User
     }
-    $schema?: any
+    $schema: any
     $dict?: any
-    $inputs?: {
+    $inputs: {
         [key: string]: string
     }
-    $actions?: {
+    $actions: {
         [key: string]: string
     },
-    $detectChanges?: () => void,
-    $join?: (user: User) => void
-    $leave?: (user: User) => void
-    $currentState?: () => Object
-    $setCurrentState?: (path: string, value: any) => void
-    $clearCurrentState?: () => void
+    $detectChanges: () => void,
+    $join: (user: User | string) => Promise<boolean>
+    $leave: (user: User | string) => void
+    $currentState: () => Object
+    $setCurrentState: (path: string, value: any) => void
+    $clearCurrentState: () => void
     $setSchema: (schema: any) => void
     $patchSchema: (schema: any) => void
     $snapshot: () => any

@@ -222,13 +222,13 @@ export class WorldClass {
      * @param {Class or instance of Class} roomClass 
      * @returns instance of Class
      */
-    addRoom(id: string, roomClass): any {
+    addRoom<T = any>(id: string, roomClass): T {
         if (roomClass.constructor.name == 'Function') {
             roomClass = new roomClass()
         }
         const room = new Room().add(id, roomClass)
         this.rooms.set(id, room)
-        return room
+        return room as any
     }
 
     /**

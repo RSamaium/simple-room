@@ -54,11 +54,11 @@ class MockSocket {
 class MockClientIo extends MockIo {
     id: string = ''
 
-    constructor(public fakeId: string) {
+    constructor(public fakeId?: string) {
         super()
     }
 
-    connection(handshake: any) {
+    connection(handshake?: any) {
         serverIo.connection(this, handshake)
         this._trigger('connect', undefined)
         return this
