@@ -1,43 +1,8 @@
 import { World } from '../lib/world.js'
+import MockSocket from '../lib/testing/mock-socket.js'
 import { Transmitter } from '../lib/transmitter.js'
 
-Transmitter.encode = true
-
-function generateId() {
-    return Math.random().toString(36).substr(2, 9)
-}
-
-class MockSocket {
-    constructor() {
-        this.id = 'mock-socket-id'
-    }
-
-    emit() { }
-
-    on() { }
-
-    join() { }
-
-    leave() { }
-}
-
-World.changes.subscribe((rooms) => {
-    if (!rooms['myroom']) return
-})
-
-const complexSchemaFake = {
-    count: 0,
-    users: [
-        { name: String, 
-            age: Number, 
-            address: { street: String, num: Number },
-            friends: [{ name: String, age: Number }],
-            address: { street: String, number: Number },
-            items: [{ name: String, price: Number }],
-
-        }
-    ]
-}
+Transmitter.encode = false
 
 function generateDataFake() {
     return {
@@ -69,31 +34,41 @@ class User {
 }
 
 World.setUserClass(User)
+World.transport(MockSocket.serverIo)
 
-class Room { 
-    $schema = complexSchemaFake
+class Room {
+    $schema = {
+        count: 0,
+        users: [
+            {
+                name: String,
+                age: Number,
+                address: { street: String, num: Number },
+                friends: [{ name: String, age: Number }],
+                address: { street: String, number: Number },
+                items: [{ name: String, price: Number }],
+
+            }
+        ]
+    }
+    users = {}
 }
 
 let room = World.addRoom('myroom', Room)
+//let room = new Room()
 
 const createUser = () => {
-    const userId = generateId()
-    World.connectUser(new MockSocket(), userId)
-    World.joinRoom('myroom', userId)
-    return userId
+    const socket = new MockSocket.ClientIo()
+    socket.connection()
+    return socket.id
 }
-
-room = {
-    users: {}
-}
-
 
 console.time('test')
 for (let i = 0; i < 1000; i++) {
     const userId = createUser()
     room.users[userId] = { items: [] }
-    for (let i=0 ; i < 100; i++) {
-        room.users[userId].items.push({ name: 'Item ' + i, price: 20 })
-    }   
+    for (let j = 0; j < 100; j++) {
+        room.users[userId].items.push({ name: 'Item ' + j, price: 20 })
+    }
 }
 console.timeEnd('test')

@@ -21,12 +21,13 @@ export class Room {
             obj.$syncWithClient !== undefined ||
             obj.$permanent !== undefined ||
             obj.$validate !== undefined ||
-            obj.$effects !== undefined || 
+            obj.$effects !== undefined ||
             obj.$type !== undefined
     }
 
-    static toDict(schema, room?) {
+    static compileSchema(schema, room?): { masks: object, dict: object, permanentObject: string[] } {
         const dict = {}
+        const masks = {}
         const permanentObject: string[] = []
 
         function specialObject(val, p) {
@@ -46,13 +47,14 @@ export class Room {
             }
             else {
                 dict[p] = val
-                toDict(val, p)
+                masks[p] = Utils.propertiesToArray(val)
+                compile(val, p)
             }
         }
 
-        function toDict(obj, path = '') {
-            for (let prop in obj) {
-                const val = obj[prop]
+        function compile(schema, path = '') {
+            for (let prop in schema) {
+                const val = schema[prop]
                 let p = (path ? path + '.' : '') + prop
                 if (Array.isArray(val)) {
                     dict[p] = GENERIC_KEY_SCHEMA
@@ -62,8 +64,8 @@ export class Room {
                     }
                     else {
                         dict[p] = val[0]
-                        toDict(val[0], p)
-                    }  
+                        compile(val[0], p)
+                    }
                 }
                 else if (Utils.isObject(val)) {
                     specialObject(val, p)
@@ -75,9 +77,10 @@ export class Room {
             }
         }
 
-        toDict(schema)
+        compile(schema)
 
         return {
+            masks,
             dict,
             permanentObject
         }
@@ -85,8 +88,8 @@ export class Room {
 
     private async join(user: User, room: RoomClass) {
 
-        if (room['onAuth']) {
-            const authBool = await Utils.resolveValue(room['onAuth'](user, user._socket.handshake))
+        if (room['canJoin']) {
+            const authBool = await Utils.resolveValue(room['canJoin'](user, user._socket.handshake))
             if (authBool === false || typeof authBool == 'string') {
                 Transmitter.error(user, new NotAuthorized(authBool))
                 return
@@ -145,12 +148,13 @@ export class Room {
 
     setProxy(room: RoomClass) {
         const self = this
-        const { dict, permanentObject } = Room.toDict(room.$schema, room)
+        const { dict, permanentObject, masks } = Room.compileSchema(room.$schema, room)
+        const proxifiedObjects = new WeakSet()
 
         this.permanentObject = permanentObject
         room.$dict = dict
 
-        const getInfoDict = (path, key, dictPath): { fullPath: string, genericPath: string, infoDict: any } => {
+        const getInfoDict = (path, key, dictPath): { fullPath: string, genericPath: string, infoDict: any, mask: string[] } => {
             const basePath = dict[dictPath]
             const p: string = (path ? path + '.' : '') + key as string
             const genericPath = (dictPath ? dictPath + '.' : '') +
@@ -158,24 +162,29 @@ export class Room {
             return {
                 fullPath: p,
                 genericPath,
-                infoDict: dict[genericPath]
+                infoDict: dict[genericPath],
+                mask: masks[genericPath],
             }
         }
 
         function deepProxy(object, path = '', dictPath = '') {
+            if (proxifiedObjects.has(object)) {
+                return object; 
+            }
             return new Proxy(object, {
                 set(target, key: string, val, receiver) {
-                    const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
+                    const { fullPath: p, infoDict, genericPath, mask } = getInfoDict(path, key, dictPath)
                     // TODO: block set if deleted. Not apply in player
                     // if (target._isDeleted) {
                     //     return false
                     // }
                     if (typeof val == 'object' && infoDict && val != null) {
                         const valProxy = deepProxy(val, p, genericPath)
+                        proxifiedObjects.add(valProxy);
                         if (path == 'users') {
-                            World.users[key]['proxy'] = valProxy 
+                            World.users[key]['proxy'] = valProxy
                         }
-                        Reflect.set(target, key, valProxy, receiver)
+                        Reflect.set(target, key, val, receiver)
                         val = target[key]
                     }
                     else {
@@ -212,7 +221,7 @@ export class Room {
                         }
                         let newObj
                         if (Utils.isObject(infoDict) && val != null && !Room.hasExtraProp(infoDict)) {
-                            newObj = Room.extractObjectOfRoom(val, infoDict)
+                            newObj = Room.extractObjectOfRoom(val, mask)
                         }
                         else if (infoDict == GENERIC_KEY_SCHEMA) {
                             newObj = {}
@@ -249,6 +258,7 @@ export class Room {
                         const { fullPath: p, infoDict, genericPath } = getInfoDict(path, key, dictPath)
                         if (typeof val == 'object' && infoDict) {
                             val = deepProxy(val, p, genericPath)
+                            proxifiedObjects.add(val);
                         }
                         return val
                     }
@@ -265,6 +275,7 @@ export class Room {
                 }
             })
         }
+        
         return deepProxy(room)
     }
 
@@ -328,36 +339,30 @@ export class Room {
     }
 
     static extractObjectOfRoom(room: Object, schema): any {
-        const newObj = {}
-        const schemas: string[] = []
-        const _schema = Array.isArray(schema) ? schema : Utils.propertiesToArray(schema)
+        const newObj = {};
+        const _schema = Array.isArray(schema) ? schema : Utils.propertiesToArray(schema);
+        const regex = new RegExp('^(.*?)\\.\\' + GENERIC_KEY_SCHEMA);
 
-        function extract(path: string) {
-            const match = new RegExp('^(.*?)\\.\\' + GENERIC_KEY_SCHEMA).exec(path)
+        function extractAndSet(obj: any, path: string) {
+            const match = regex.exec(path);
             if (match) {
-                const generic = get(room, match[1])
-                if (generic) {
-                    const keys = Object.keys(generic)
-                    for (let key of keys) {
-                        extract(path.replace(GENERIC_KEY_SCHEMA, key))
+                const generic = get(room, match[1]);
+                if (generic && typeof generic === 'object') {
+                    for (let key in generic) {
+                        if (generic.hasOwnProperty(key)) {
+                            extractAndSet(obj, path.replace(GENERIC_KEY_SCHEMA, key));
+                        }
                     }
                 }
-            }
-            else {
-                schemas.push(path)
+            } else {
+                set(obj, path, get(room, path));
             }
         }
-
         for (let path of _schema) {
-            extract(path)
+            extractAndSet(newObj, path);
         }
-
-        for (let schema of schemas) {
-            set(newObj, schema, get(room, schema))
-        }
-
-        return newObj
-    }
+        return newObj;
+    }    
 
     detectChanges(room: RoomClass, obj: Object | null, path: string): void {
 

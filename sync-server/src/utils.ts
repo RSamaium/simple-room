@@ -48,22 +48,33 @@ export class Utils {
         return value
     }
 
-    // https://stackoverflow.com/questions/54733539/javascript-implementation-of-lodash-set-method
     static set(obj, path, value, onlyPlainObject = false) {
-        if (Object(obj) !== obj) return obj; // When obj is not an object
-        // If not yet an array, get the keys from the string-path
-        if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || [];
-        path.slice(0, -1).reduce((a, c, i) => // Iterate all of them except the last one
-            Object(a[c]) === a[c] // Does the key exist and is its value an object?
-                // Yes: then follow that path
-                ? a[c]
-                // No: create the key. Is the next key a potential array-index?
-                : a[c] = Math.abs(path[i + 1]) >> 0 === +path[i + 1]
-                    ? onlyPlainObject ? {} : [] // Yes: assign a new array object
-                    : {}, // No: assign a new plain object
-            obj)[path[path.length - 1]] = value; // Finally assign the value to the last key
-        return obj; // Return the top-level object to allow chaining
-    };
+        if (Object(obj) !== obj) return obj;
+    
+        if (typeof path === 'string') {
+            path = path.split('.');
+        }
+    
+        let len = path.length;
+        if (!len) return obj;
+    
+        let current = obj;
+        for (let i = 0; i < len - 1; i++) {
+            let segment = path[i];
+            let nextSegment = path[i + 1];
+            let isNextNumeric = !isNaN(nextSegment) && isFinite(nextSegment);
+    
+            if (!current[segment] || typeof current[segment] !== 'object') {
+                current[segment] = (isNextNumeric && !onlyPlainObject) ? [] : {};
+            }
+    
+            current = current[segment];
+        }
+    
+        current[path[len - 1]] = value;
+    
+        return obj;
+    }
 
     static get(obj, path) {
         const keys = path.split('.');
