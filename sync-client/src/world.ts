@@ -67,6 +67,11 @@ export class WorldClass {
         this.socket.on('uid', (response) => {
             WorldClass.userId = response
         })
+
+        this.socket.on('connect', () => {
+            this.obs$.next({})
+        })
+
         this.socket.on('w', (response) => {
 
             if (options.encoded) {
@@ -75,7 +80,7 @@ export class WorldClass {
             }
 
             const [roomId, time, data] = response
-            
+    
             const lastRoomId = this.obs$.value.roomId 
             let mergeData: any = {}
             let resetProps: string[] = []
@@ -99,7 +104,7 @@ export class WorldClass {
                 // not merge 
                 mergeData = data
             }
-            
+ 
             if (data.users) {
                 mergeData.users = this.users.detectChanges(mergeData.users)
             }

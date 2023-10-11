@@ -3,39 +3,61 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="../../dist/simple-room-client.umd.cjs"></script>
 
-<button id="bet">Bet</button>
-<button id="fold">Fold</button>
+<button id="connect">Connect</button>
+<button id="disconnect">Disconnect</button>
 <pre id="code">
 
 </pre>
 
 <script>
     const { World, room } = SimpleRoom
-    const socket = io('localhost:3050')
-    
-    World.listen(socket).join('myroom')
-    
-    room.listen(() => {
-        document.getElementById('code').textContent = JSON.stringify(room.get(), null, 2)
+    let socket
+
+    const disconnect = () => {
+        socket.close();
+    }
+
+    const connection = () => {
+        fetch('http://localhost:3050/set-cookie', {
+            method: 'GET',
+            credentials: 'include'
+        }).then(() => {
+            socket = io('localhost:3050', {
+                withCredentials: true
+            })
+
+            console.log('join')
+
+            World.listen(socket).join('myroom')
+
+            room.listen(() => {
+                document.getElementById('code').textContent = JSON.stringify(room.get(), null, 2)
+            })
+
+            socket.on('disconnect', () => {
+                console.log('disconnected')
+            })
+
+            socket.on('error', (errorData) => {
+                console.error('Error', errorData);
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connect error', error.message);
+            });
+
+        }).catch((error) => {
+            console.error(error)
+        })
+    }
+
+    document.getElementById('connect').addEventListener('click', () => {
+        connection()
     })
 
-    socket.on('disconnect', () => {
-        console.log('disconnected')
+    document.getElementById('disconnect').addEventListener('click', () => {
+        disconnect()
     })
 
-    socket.on('error', (errorData) => {
-        console.error('Erreur reçue du serveur:', errorData);
-    });
 
-    socket.on('connect_error', (error) => {
-        console.error('Connect error', error.message);
-    });
-
-    document.getElementById('bet').addEventListener('click', () => {
-        World.action('bet', 10)
-    })
-
-    document.getElementById('fold').addEventListener('click', () => {
-        World.action('fold')
-    })
 </script>

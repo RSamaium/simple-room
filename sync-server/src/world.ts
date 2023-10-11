@@ -1,7 +1,7 @@
 import { Room } from './room'
 import { Transmitter } from './transmitter'
 import { Transport, TransportOptions } from './transports/socket'
-import { User } from './rooms/default'
+import { User, UserState } from './rooms/default'
 import { RoomClass } from './interfaces/room.interface'
 import { BehaviorSubject } from 'rxjs'
 
@@ -12,6 +12,7 @@ export class WorldClass {
         [key: string]: User
     } = {}
     private userClass = User
+    timeoutDisconnect: number = 0
     changes: BehaviorSubject<any> = new BehaviorSubject({})
 
     /**
@@ -32,6 +33,10 @@ export class WorldClass {
      * @returns {Transport}
      */
     transport(io, options: TransportOptions = {}): Transport {
+        if (options.timeoutDisconnect) {
+            this.timeoutDisconnect = options.timeoutDisconnect
+        }
+
         const transport = new Transport(io, options)
         transport.onConnected(this.connectUser.bind(this))
         transport.onDisconnected(this.disconnectUser.bind(this))
@@ -80,7 +85,7 @@ export class WorldClass {
      * @returns {void}
      */
     forEachUserRooms<T = User>(userId: string, cb: (room: RoomClass, user: T) => void): void {
-        const user = this.getUser(userId)
+        const user = this.getUser(userId, true)
         if (!user) return
         for (let roomId of user._rooms) {
             const room = this.getRoom(roomId) as RoomClass
@@ -155,6 +160,16 @@ export class WorldClass {
      * @returns {User}
      */
     connectUser<T = User>(socket, id: string): T {
+        const existingUser = this.getUser(id, false)
+        if (existingUser) {
+            if (existingUser._timeoutDisconnect) {
+                clearTimeout(existingUser._timeoutDisconnect)
+                delete existingUser._timeoutDisconnect
+            }
+            existingUser._socket = socket
+            existingUser.$state = UserState.Connected
+            return existingUser as any
+        }
         const user = new this.userClass()
         user.id = id
         socket.emit('uid', id)
@@ -170,10 +185,29 @@ export class WorldClass {
      * @returns {void}
      */
     disconnectUser(userId: string): void {
-        this.forEachUserRooms(userId, (room: RoomClass, user: User) => {
-            if (room.$leave) room.$leave(user)
+        const user = this.getUser(userId)
+        if (!user) return
+        user._timeoutDisconnect = setTimeout(() => {
+            this.forEachUserRooms(userId, async (room: RoomClass, user: User) => {
+                user.$state = UserState.Disconnected
+                if (room.$leave) room.$leave(user).catch(err => {
+                    Transmitter.error(user as User, err)
+                })
+            })
+            delete this.users[userId]
+        }, this.timeoutDisconnect)
+    }
+
+    httpUpgrade(httpServer, io) {
+        httpServer.removeAllListeners("upgrade");
+
+        httpServer.on("upgrade", (req: any, socket, head) => {
+            if (req.url.startsWith("/socket.io/")) {
+                io.engine.handleUpgrade(req, socket, head);
+            } else {
+                socket.destroy();
+            }
         })
-        delete this.users[userId]
     }
 
     private async joinOrLeaveRoom(type: string, roomId: string, userId: string): Promise<RoomClass | undefined> {

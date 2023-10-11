@@ -2380,6 +2380,8 @@ const Fn = class {
   listen(r, e = {}) {
     return e.encoded === void 0 && (e.encoded = !0), this.socket = r, this.socket.on("uid", (t) => {
       Fn.userId = t;
+    }), this.socket.on("connect", () => {
+      this.obs$.next({});
     }), this.socket.on("w", (t) => {
       if (e.encoded) {
         const v = new Uint8Array(t);

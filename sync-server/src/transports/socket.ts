@@ -1,5 +1,7 @@
 import { TransportCommon } from './common';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { Utils } from '../utils';
+import { NotAuthorized } from '../errors/not-authorized';
 
 export type BandwidthSocket = { incoming: { size: number, timestamp: number }[], outgoing: { size: number, timestamp: number }[] }
 export type BandwidthData = Record<string, BehaviorSubject<BandwidthSocket>>
@@ -7,6 +9,8 @@ export type TransportOptions = {
     maxKbpsIncoming?: number
     maxKbpsOutgoing?: number
     clientCanJoinRoom?: boolean
+    timeoutDisconnect?: number,
+    auth?: (socket: any) => Promise<string | never> | string | never
 }
 
 export class Transport extends TransportCommon {
@@ -17,7 +21,7 @@ export class Transport extends TransportCommon {
         super();
 
         io.on('connection', (socket) => {
-            const id = socket.client.id;
+            const id = socket.playerId
             this.bandwidthData[id] = new BehaviorSubject({
                 incoming: [] as any,
                 outgoing: [] as any
@@ -43,24 +47,39 @@ export class Transport extends TransportCommon {
     }
 
     private async initializeBandwidthMeasurement() {
-        const { maxKbpsIncoming, maxKbpsOutgoing } = this.options;
+        const { maxKbpsIncoming, maxKbpsOutgoing, auth } = this.options;
         this.io.use?.(async (socket, next) => {
-            const socketId = socket.client.id;
-            
+
+            let playerId
+            if (auth) {
+                 try {
+                    playerId = await Utils.resolveValue(auth(socket))
+                }
+                catch (err) {
+                    socket.disconnect();
+                    next(new NotAuthorized(err).toObject())
+                    return
+                }
+            }
+
+            if (!playerId) playerId = Utils.generateId(5)
+
+            socket.playerId = playerId;
+
             // Intercept incoming messages
             socket.use((packet, nextMiddleware) => {
                 if (packet && packet[1]) {
                     const packetSize = Buffer.from(JSON.stringify(packet)).length - 2;
                     const data = { size: packetSize, timestamp: Date.now() };
 
-                    this.updateBandwidthData(socketId, { incoming: data });
-                    const kbps = this.calculateKbps(this.bandwidthData[socketId]?.value.incoming || []);
+                    this.updateBandwidthData(playerId, { incoming: data });
+                    const kbps = this.calculateKbps(this.bandwidthData[playerId]?.value.incoming || []);
                     if (maxKbpsIncoming && kbps > maxKbpsIncoming) {
                         socket.disconnect();
                         return;
                     }
 
-                    this.cleanOldData(this.bandwidthData[socketId]?.value.incoming || []);
+                    this.cleanOldData(this.bandwidthData[playerId]?.value.incoming || []);
                 }
                 nextMiddleware();
             });
@@ -71,14 +90,14 @@ export class Transport extends TransportCommon {
                 const packetSize = Buffer.from(JSON.stringify(args)).length - 2;
                 const data = { size: packetSize, timestamp: Date.now() };
 
-                this.updateBandwidthData(socketId, { outgoing: data });
-                const kbps = this.calculateKbps(this.bandwidthData[socketId]?.value.outgoing || []);
+                this.updateBandwidthData(playerId, { outgoing: data });
+                const kbps = this.calculateKbps(this.bandwidthData[playerId]?.value.outgoing || []);
                 if (maxKbpsOutgoing && kbps > maxKbpsOutgoing) {
                     socket.disconnect();
                     return;
                 }
 
-                this.cleanOldData(this.bandwidthData[socketId]?.value.outgoing || []);
+                this.cleanOldData(this.bandwidthData[playerId]?.value.outgoing || []);
                 originalEmit.apply(socket, args);
             };
 

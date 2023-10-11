@@ -5,8 +5,9 @@ import type { OnInit, OnJoin, OnLeave, RoomClass } from './interfaces/room.inter
 import { User } from './user'
 import { Transmitter } from './transmitter'
 import MockSocketIo from './testing/mock-socket'
+import { Utils } from './utils'
 
-export { 
+export {
     World,
     Room,
     WorldClass,
@@ -19,4 +20,5 @@ export {
     User,
     Transmitter,
     MockSocketIo,
+    Utils
 }

@@ -2,7 +2,7 @@ import { Utils, GENERIC_KEY_SCHEMA } from './utils'
 import { Transmitter } from './transmitter'
 import { Packet } from './packet'
 import { RoomClass } from './interfaces/room.interface';
-import { User } from './rooms/default'
+import { User, UserState } from './rooms/default'
 import { World } from './world'
 import { NotAuthorized } from './errors/not-authorized';
 
@@ -87,7 +87,6 @@ export class Room {
     }
 
     private async join(user: User, room: RoomClass): Promise<boolean> {
-
         if (room['canJoin']) {
             const authBool = await Utils.resolveValue(room['canJoin'](user, user._socket))
             if (authBool === false || typeof authBool == 'string') {
@@ -96,14 +95,19 @@ export class Room {
             }
         }
 
+        let firstJoin = !room.users[user.id]
+
         room.users[user.id] = user
+        
         const userProxy = World.users[user.id]['proxy']
+        userProxy.$state = UserState.Connected
 
-        if (!userProxy._rooms) userProxy._rooms = []
-        userProxy._rooms.push(room.id)
-        if (!userProxy.id) userProxy.id = Utils.generateId()
-
-        if (room['onJoin']) room['onJoin'](userProxy)
+        if (firstJoin) {
+            if (!userProxy._rooms) userProxy._rooms = []
+            userProxy._rooms.push(room.id)
+            if (!userProxy.id) userProxy.id = Utils.generateId()
+            if (room['onJoin']) room['onJoin'](userProxy)
+        }
 
         if (this.getUsersLength(room) == 1) {
             // If it's the first to arrive in the room, we save the default values of the room
@@ -111,7 +115,7 @@ export class Room {
         }
         const packet = new Packet({
             ...this.memoryTotalObject,
-            join: true
+            join: firstJoin
         }, <string>room.id)
         Transmitter.emit(userProxy, packet, room)
 
@@ -119,9 +123,10 @@ export class Room {
     }
 
     private leave(user: User, room: RoomClass): void {
+        if (room['onLeave']) room['onLeave'](user)
         const index = user._rooms.findIndex(id => room.id == id)
         user._rooms.splice(index, 1)
-        if (room['onLeave']) room['onLeave'](user)
+        delete room.users[user.id]
     }
 
     private getUsersLength(room: RoomClass) {
@@ -171,7 +176,7 @@ export class Room {
 
         function deepProxy(object, path = '', dictPath = '') {
             if (proxifiedObjects.has(object)) {
-                return object; 
+                return object;
             }
             return new Proxy(object, {
                 set(target, key: string, val, receiver) {
@@ -277,7 +282,7 @@ export class Room {
                 }
             })
         }
-        
+
         return deepProxy(room)
     }
 
@@ -285,7 +290,7 @@ export class Room {
         room.id = id
         room.$dict = {}
         if (!room.$schema) room.$schema = {}
-        if (!room.$schema.users) room.$schema.users = [{ id: String }]
+        if (!room.$schema.users) room.$schema.users = [User.schema]
         if (!room.$inputs) room.$inputs = {}
         if (!room.users) room.users = {}
         if (room.$inputs) this.addInputs(room, room.$inputs)
@@ -329,10 +334,7 @@ export class Room {
             if (typeof user == 'string') {
                 user = World.users[user]['proxy']
             }
-            const _user = user as User
-            this.leave(_user, room)
-            delete room.users[_user.id]
-            delete World.users[_user.id]['proxy']
+            this.leave(user as User, room)
         }
 
         room.$currentState = () => this.memoryObject
@@ -372,7 +374,7 @@ export class Room {
             extractAndSet(newObj, path);
         }
         return newObj;
-    }    
+    }
 
     detectChanges(room: RoomClass, obj: Object | null, path: string): void {
 

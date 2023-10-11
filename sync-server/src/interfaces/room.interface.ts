@@ -28,7 +28,7 @@ export interface RoomClass {
     },
     $detectChanges: () => void,
     $join: (user: User | string) => Promise<boolean>
-    $leave: (user: User | string) => void
+    $leave: (user: User | string) => Promise<void>
     $currentState: () => Object
     $setCurrentState: (path: string, value: any) => void
     $clearCurrentState: () => void
