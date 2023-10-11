@@ -325,7 +325,7 @@ export class Room {
             return false
         }
 
-        room.$leave = (user: User | string) => {
+        room.$leave = async (user: User | string) => {
             if (typeof user == 'string') {
                 user = World.users[user]['proxy']
             }

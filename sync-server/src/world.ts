@@ -38,15 +38,25 @@ export class WorldClass {
         transport.onJoin(this.joinRoom.bind(this))
         transport.onInput((id: string, prop: string, value: any) => {
             this.forEachUserRooms(id, (room: RoomClass, user) => {
-                if (room.$inputs && room.$inputs[prop]) {
-                    room[prop] = value
+                try {
+                    if (room.$inputs && room.$inputs[prop]) {
+                        room[prop] = value
+                    }
+                }
+                catch (err: any) {
+                    Transmitter.error(user, err)
                 }
             })
         })
         transport.onAction((id: string, name: string, value: any) => {
             this.forEachUserRooms(id, async (room, user) => {
                 if (room.$actions && room.$actions[name]) {
-                    room[name](user, value)
+                    try {
+                        room[name](user, value)
+                    }
+                    catch (err: any) {
+                        Transmitter.error(user, err)
+                    }
                 }
             })
         })
@@ -78,12 +88,12 @@ export class WorldClass {
         }
     }
 
-     /**
-     * Retrieves all users in the world
-     * 
-     * @method getUsers()
-     * @returns { {[id: string]: User} }
-     */
+    /**
+    * Retrieves all users in the world
+    * 
+    * @method getUsers()
+    * @returns { {[id: string]: User} }
+    */
     getUsers<T = User>(): { [id: string]: T } {
         return this.users as any
     }
@@ -98,7 +108,7 @@ export class WorldClass {
     getUser<T = User>(id: string, getProxy: boolean = true): T | null {
         if (!this.users[id]) return null
         if (getProxy && this.users[id]['proxy']) {
-            return this.users[id]['proxy'] 
+            return this.users[id]['proxy']
         }
         return this.users[id] as any
     }
@@ -166,10 +176,18 @@ export class WorldClass {
         delete this.users[userId]
     }
 
-    private joinOrLeaveRoom(type: string, roomId: string, userId: string): RoomClass | undefined  {
+    private async joinOrLeaveRoom(type: string, roomId: string, userId: string): Promise<RoomClass | undefined> {
         const room = this.getRoom(roomId)
         if (!room) return
-        if (room[type]) room[type](this.getUser(userId, false))
+        if (room[type]) {
+            try {
+                await room[type](this.getUser(userId, false))
+            }
+            catch (err: any) {
+                Transmitter.error(this.getUser(userId, false) as User, err)
+                throw err
+            }
+        }
         return room
     }
 
@@ -180,7 +198,7 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {RoomClass | undefined}
      */
-    leaveRoom(roomId: string, userId: string): RoomClass | undefined {
+    async leaveRoom(roomId: string, userId: string): Promise<RoomClass | undefined> {
         return this.joinOrLeaveRoom('$leave', roomId, userId)
     }
 
@@ -191,7 +209,7 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {RoomClass | undefined}
      */
-    joinRoom(roomId: string, userId: string): RoomClass | undefined {
+    async joinRoom(roomId: string, userId: string): Promise<RoomClass | undefined> {
         return this.joinOrLeaveRoom('$join', roomId, userId)
     }
 

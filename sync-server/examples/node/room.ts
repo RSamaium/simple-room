@@ -50,7 +50,6 @@ export default class PokerRoom {
         }
     }
 
-
     onLeave(player: any) {
         if (this.timer) {
             clearTimeout(this.timer);
@@ -136,8 +135,7 @@ export default class PokerRoom {
     bet(player, amount) {
         const userId = player.id;
         if (userId !== this.currentPlayerId) {
-            console.error('It is not this player\'s turn to act.');
-            return;
+            throw 'It is not this player\'s turn to act.'
         }
 
         if (player.chips >= amount && amount >= this.currentRoundBet) {

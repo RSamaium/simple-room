@@ -41,8 +41,9 @@ class TransmitterClass {
         }
     }
 
-    error(user: User, error: CustomError): void {
-        user._socket.emit('error', error.toObject())
+    error(user: User, error: CustomError | string): void {
+        const err =  error instanceof Error ? error.toObject ? error.toObject() : error.message : error
+        user._socket.emit('error', err)
     }
 
     async emit(user: User, packet: Packet, room: RoomClass): Promise<void> {
