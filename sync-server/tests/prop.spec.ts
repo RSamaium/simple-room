@@ -2,7 +2,7 @@ import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import { testSend } from './fixture'
 import MockSocketIo from '../src/testing/mock-socket'
-import { beforeEach, test, expect, describe } from 'vitest'
+import { beforeEach, test, expect, describe, afterEach } from 'vitest'
 
 let room: any
 
@@ -222,4 +222,8 @@ describe('Sync properties dependencies', () => {
             World.send()
         })
     })
+})
+
+afterEach(() => {
+    World.clear()
 })

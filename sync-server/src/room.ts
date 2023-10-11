@@ -59,6 +59,7 @@ export class Room {
                 if (Array.isArray(val)) {
                     dict[p] = GENERIC_KEY_SCHEMA
                     p += '.' + GENERIC_KEY_SCHEMA
+                    if (val[0] === undefined) val[0] = {}
                     if (Utils.isObject(val[0])) {
                         specialObject(val[0], p)
                     }
@@ -127,6 +128,7 @@ export class Room {
         const index = user._rooms.findIndex(id => room.id == id)
         user._rooms.splice(index, 1)
         delete room.users[user.id]
+        delete World.users[user.id]['proxy']
     }
 
     private getUsersLength(room: RoomClass) {
@@ -356,6 +358,9 @@ export class Room {
         const regex = new RegExp('^(.*?)\\.\\' + GENERIC_KEY_SCHEMA);
 
         function extractAndSet(obj: any, path: string) {
+            if (path.endsWith('@')) {
+                return
+            }
             const match = regex.exec(path);
             if (match) {
                 const generic = get(room, match[1]);

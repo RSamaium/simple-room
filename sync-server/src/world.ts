@@ -184,18 +184,35 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {void}
      */
-    disconnectUser(userId: string): void {
-        const user = this.getUser(userId)
-        if (!user) return
-        user._timeoutDisconnect = setTimeout(() => {
-            this.forEachUserRooms(userId, async (room: RoomClass, user: User) => {
-                user.$state = UserState.Disconnected
-                if (room.$leave) room.$leave(user).catch(err => {
-                    Transmitter.error(user as User, err)
+    disconnectUser(userId: string): Promise<void> {
+        return new Promise((resolve: any, reject) => {
+            const user = this.getUser(userId)
+        
+            if (!user) return resolve()
+
+            user.$state = UserState.Disconnected
+
+            const leave = () => {
+                const leaveAllPromises: Promise<void>[] = []
+                this.forEachUserRooms(userId, async (room: RoomClass, user: User) => {
+                    if (room.$leave) leaveAllPromises.push(room.$leave(user))
                 })
-            })
-            delete this.users[userId]
-        }, this.timeoutDisconnect)
+                delete this.users[userId]
+                Promise.all(leaveAllPromises)
+                    .then(resolve)
+                    .catch(err => {
+                        Transmitter.error(user as User, err)
+                        reject(err)
+                    })
+            }
+
+            if (this.timeoutDisconnect == 0) {
+                leave()
+                return
+            }
+
+            user._timeoutDisconnect = setTimeout(leave, this.timeoutDisconnect)
+        })
     }
 
     httpUpgrade(httpServer, io) {

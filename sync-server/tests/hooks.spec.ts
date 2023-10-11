@@ -1,13 +1,18 @@
 import { World } from '../src/world'
 import MockSocketIo from '../src/testing/mock-socket'
-import { beforeEach, test, expect, vi, describe } from 'vitest'
+import { beforeEach, test, expect, vi, describe, afterEach } from 'vitest'
 import { RoomClass } from '../src/interfaces/room.interface'
 
 const CLIENT_ID = 'test'
 let socket
 
 beforeEach(() => {
-    World.transport(MockSocketIo.serverIo)
+    World.transport(MockSocketIo.serverIo, {
+        auth() {
+            return CLIENT_ID
+        },
+        timeoutDisconnect: 0
+    })
     socket = new MockSocketIo.ClientIo(CLIENT_ID)
     socket.connection()
 })
@@ -105,14 +110,14 @@ describe('canJoin()', () => {
     })
 })
 
-test('onLeave()', () => {
+test('onLeave()', async () => {
     const onLeave = vi.fn()
     class Room {
         onLeave = onLeave
     }
     World.addRoom('room', Room)
-    World.joinRoom('room', CLIENT_ID)
-    socket.disconnect()
+    await World.joinRoom('room', CLIENT_ID)
+    await World.disconnectUser(CLIENT_ID)
     expect(onLeave).toHaveBeenCalled()
     expect(onLeave).toHaveBeenCalledWith(expect.objectContaining({
         id: CLIENT_ID
@@ -136,3 +141,7 @@ test('onChanges()', () => {
         count: 1
     }))
 })
+
+// afterEach(() => {
+//     World.clear()
+// })

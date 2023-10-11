@@ -1,14 +1,18 @@
 import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import MockSocketIo from '../src/testing/mock-socket'
-import { beforeEach, test, expect } from 'vitest'
+import { beforeEach, test, expect, afterEach } from 'vitest'
 
 let event, socket
 
 const CLIENT_ID = 'mock'
 
 beforeEach(() => {
-    World.transport(MockSocketIo.serverIo)
+    World.transport(MockSocketIo.serverIo, {
+        auth() {
+            return CLIENT_ID
+        }
+    })
     socket = new MockSocketIo.ClientIo(CLIENT_ID)
     socket.connection()
     Transmitter.encode = false
@@ -23,7 +27,7 @@ test('Test User in World', () => {
 test('Test Room properties', () => {
     class Room {
         $schema = {
-            users: [{}]
+            users: []
         }
     }
     const room =  World.addRoom('room', Room)
@@ -99,7 +103,7 @@ test('Change Schema', () => {
 })
 
 test('Change Room', () => {
-    return new Promise((resolve: any) => {
+    return new Promise(async (resolve: any) => {
         let send = 0
         
         class Room {
@@ -131,18 +135,22 @@ test('Change Room', () => {
 
         let user
         let room1 =  World.addRoom('room1', Room) 
-        World.joinRoom(room1.id, CLIENT_ID)
+        await World.joinRoom(room1.id, CLIENT_ID)
         user = World.getUser(CLIENT_ID)
         user.position = {x: 10, y: 10}
         World.send()
 
-        World.leaveRoom(room1.id, CLIENT_ID)
+        await World.leaveRoom(room1.id, CLIENT_ID)
 
         let room2 =  World.addRoom('room2', Room) 
-        World.joinRoom(room2.id, CLIENT_ID)
+        await World.joinRoom(room2.id, CLIENT_ID)
         user = World.getUser(CLIENT_ID)
         user.position.x = 20
         user.position.y = 20
         World.send()
     })
 })
+
+// afterEach(() => {
+//     World.clear()
+// })

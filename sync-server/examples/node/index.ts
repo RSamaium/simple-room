@@ -5,6 +5,7 @@ import Room from './room.js';
 import Player from './player.js'
 import jwt from 'jsonwebtoken'
 
+const SECRET_KEY = 'shhhhh'
 
 const httpServer = createServer((req, res) => {
   // cors
@@ -14,7 +15,7 @@ const httpServer = createServer((req, res) => {
   if (req.url === '/set-cookie') {
       if (true) {
           let sessionId = 'pp';
-          const token = jwt.sign({ sessionId }, 'test');
+          const token = jwt.sign({ sessionId }, SECRET_KEY);
           res.setHeader('Set-Cookie', `sessionId=${token}; HttpOnly; Path=/`);
       }
       res.end('Cookie set');
@@ -35,7 +36,9 @@ World.transport(io, {
   clientCanJoinRoom: true,
   timeoutDisconnect: 10000,
   auth(socket) {
-    return Utils.generateId()
+    const token = socket.request.headers.cookie?.split('=')[1]
+    const decoded = jwt.verify(token, SECRET_KEY);
+    return decoded.sessionId
   }
 })
 
