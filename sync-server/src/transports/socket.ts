@@ -17,7 +17,7 @@ export class Transport extends TransportCommon {
     private bandwidthData: BandwidthData = {};
     private readonly WINDOW_SECONDS = 10; // Store data for the last 10 seconds
 
-    constructor(private io: any, private options: TransportOptions = {}) {
+    constructor(public io: any, private options: TransportOptions = {}) {
         super();
 
         io.on('connection', (socket) => {
@@ -39,20 +39,20 @@ export class Transport extends TransportCommon {
             });
         });
 
-        this.initializeBandwidthMeasurement();
+        this.use();
     }
 
     private handleConnection(socket: any, id: string) {
         this.onConnectedCb(socket, id);
     }
 
-    private async initializeBandwidthMeasurement() {
+    private async use() {
         const { maxKbpsIncoming, maxKbpsOutgoing, auth } = this.options;
         this.io.use?.(async (socket, next) => {
 
             let playerId
             if (auth) {
-                 try {
+                try {
                     playerId = await Utils.resolveValue(auth(socket))
                 }
                 catch (err) {

@@ -20,7 +20,7 @@ const httpServer = createServer((req, res) => {
       }
       res.end('Cookie set');
   } else {
-      res.end('Serveur HTTP fonctionnant');
+      res.end('HTTP');
   }
 });
 

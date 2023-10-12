@@ -14,6 +14,7 @@ export class WorldClass {
     private userClass = User
     timeoutDisconnect: number = 0
     changes: BehaviorSubject<any> = new BehaviorSubject({})
+    private _transport: Transport | null = null
 
     /**
      * Define user class
@@ -65,7 +66,7 @@ export class WorldClass {
                 }
             })
         })
-        return transport
+        return this._transport = transport
     }
 
     /**
@@ -336,6 +337,9 @@ export class WorldClass {
     clear() {
         this.rooms.clear()
         this.users = {}
+        if (this._transport) {
+            this._transport.io?.clear?.()
+        }
     }
 }
 

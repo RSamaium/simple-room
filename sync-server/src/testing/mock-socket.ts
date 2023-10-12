@@ -28,6 +28,10 @@ class MiddlewareHandler {
   
       next();
     }
+
+    clear() {
+        this.middlewares = []
+    }
   }
 
 
@@ -87,6 +91,8 @@ class MockSocket {
     off(name: string) {
         this.io.off(name, this.id)
     }
+
+    disconnect() { }
 }
 
 class MockClientIo extends MockIo {
@@ -106,6 +112,10 @@ class MockClientIo extends MockIo {
     emit(name: string, data) {
         if (!this._socket) throw new Error('Client not connected')
         this._socket.middlewares.run([name, data], (err) => {
+            if (err) {
+                this._trigger('error', err)
+                return
+            }
             serverIo._trigger(name, data, this)
         })
         return this
@@ -125,6 +135,10 @@ class MockServerIo extends MockIo {
         this.clients.set(socket.id, client)
         client.id = socket.id
         this.middlewares.run(socket, (err) => {
+            if (err) {
+                client._trigger('error', err)
+                return
+            }
             this._trigger('connection', socket)
         })
         return socket
@@ -140,6 +154,7 @@ class MockServerIo extends MockIo {
 
     clear() {
         this.clients.clear()
+        this.middlewares.clear()
     }
 }
 
