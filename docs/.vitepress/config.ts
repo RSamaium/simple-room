@@ -3,8 +3,20 @@ const guideMenu = [{
   collapsed: false,
   items: [
     { text: "Getting Started", link: "/guide/get-started" },
-    { text: "Client Side", link: "/guide/client-side" },
+    { text: "Client Side", link: "/guide/client-side" }
+  ],
+
+}, {
+  text: 'Room',
+  collapsed: false,
+  items: [
     { text: "Room Hooks", link: "/guide/hook" },
+    { text: "Room Methods", link: "/guide/room-method" },
+  ]
+}, {
+  text: 'Schema',
+  collapsed: false,
+  items: [
     { text: "Schema", link: "/guide/schema" },
   ]
 }]
