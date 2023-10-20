@@ -1,9 +1,10 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { World, Transmitter, Utils } from 'simple-room';
+import { World } from 'simple-room';
 import Room from './room.js';
 import Player from './player.js'
 import jwt from 'jsonwebtoken'
+import AgonesSDK from '@google-cloud/agones-sdk'
 
 const SECRET_KEY = 'shhhhh'
 
@@ -30,6 +31,8 @@ const io = new Server(httpServer, {
     credentials: true
   }
 });
+
+World.setAgones(new AgonesSDK() as any)
 
 World.transport(io, {
   maxKbpsIncoming: 0.2,

@@ -4,6 +4,7 @@ import { Transport, TransportOptions } from './transports/socket'
 import { User, UserState } from './rooms/default'
 import { RoomClass } from './interfaces/room.interface'
 import { BehaviorSubject } from 'rxjs'
+import type { IAgonesOptions, IAgones } from './interfaces/agones.interface'
 
 export class WorldClass {
 
@@ -16,6 +17,9 @@ export class WorldClass {
     changes: BehaviorSubject<any> = new BehaviorSubject({})
     private _transport: Transport | null = null
 
+    public agonesSDK: IAgones | null = null
+    public agonesOptions: IAgonesOptions = {}
+
     /**
      * Define user class
      * 
@@ -24,6 +28,11 @@ export class WorldClass {
      */
     setUserClass(userClass: any) {
         this.userClass = userClass
+    }
+
+    setAgones(agones: IAgones, options: IAgonesOptions = {}) {
+        this.agonesSDK = agones
+        this.agonesOptions = options
     }
 
     /**
@@ -37,7 +46,6 @@ export class WorldClass {
         if (options.timeoutDisconnect) {
             this.timeoutDisconnect = options.timeoutDisconnect
         }
-
         const transport = new Transport(io, options)
         transport.onConnected(this.connectUser.bind(this))
         transport.onDisconnected(this.disconnectUser.bind(this))
@@ -124,6 +132,10 @@ export class WorldClass {
         user._rooms = []
         this.users[user.id] = user
         return this.users[user.id]
+    }
+
+    get nbUsers(): number {
+        return Object.keys(this.users).length
     }
 
     /**
@@ -298,6 +310,9 @@ export class WorldClass {
         }
         const room = new Room().add(id, roomClass)
         this.rooms.set(id, room)
+        if (this.agonesSDK) {
+            this.agonesSDK.setLabel('room.id', id)
+        }
         return room as any
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "simple-room",
-  "version": "2.4.1",
+  "version": "3.0.0",
   "description": "",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -20,6 +20,7 @@
   "author": "Samuel Ronce",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/agones-sdk": "^1.35.0",
     "msgpack-lite": "0.1.26",
     "rxjs": "7.8.1"
   },

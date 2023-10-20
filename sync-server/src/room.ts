@@ -96,6 +96,10 @@ export class Room {
             }
         }
 
+        if (World.agonesSDK) {
+            await World.agonesSDK.allocate()
+        }
+
         let firstJoin = !room.users[user.id]
 
         room.users[user.id] = user
@@ -123,12 +127,19 @@ export class Room {
         return true
     }
 
-    private leave(user: User, room: RoomClass): void {
+    private async leave(user: User, room: RoomClass): Promise<void> {
         if (room['onLeave']) room['onLeave'](user)
         const index = user._rooms.findIndex(id => room.id == id)
         user._rooms.splice(index, 1)
         delete room.users[user.id]
         delete World.users[user.id]['proxy']
+        if (World.nbUsers == 0 && World.agonesSDK) {
+            const { onBeforeShutdown, shutdownIfNotPlayers } = World.agonesOptions
+            if (shutdownIfNotPlayers) {
+                if (onBeforeShutdown) await onBeforeShutdown()
+                await World.agonesSDK.shutdown()
+            }
+        }
     }
 
     private getUsersLength(room: RoomClass) {
@@ -336,7 +347,7 @@ export class Room {
             if (typeof user == 'string') {
                 user = World.users[user]['proxy']
             }
-            this.leave(user as User, room)
+            await this.leave(user as User, room)
         }
 
         room.$currentState = () => this.memoryObject
