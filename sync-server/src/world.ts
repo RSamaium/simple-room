@@ -143,8 +143,8 @@ export class WorldClass {
      * 
      * @method send()
      */
-    send(): void {
-        this.rooms.forEach((room: any, id: string) => {
+    async send(): Promise<void> {
+        for (let [_, room] of this.rooms) {
             const obj = room.$currentState()
             if (Object.keys(obj).length == 0) {
                 return
@@ -155,12 +155,12 @@ export class WorldClass {
                 const packets = Transmitter.getPackets(room)
                 if (packets) {
                     for (let packet of packets) {
-                        Transmitter.emit(user, packet, room)
+                        await Transmitter.emit(user, packet, room)
                     }
                 }
             }
             room.$clearCurrentState()
-        })
+        }
         Transmitter.clear()
     }
 
@@ -170,9 +170,13 @@ export class WorldClass {
      * @method connectUser()
      * @param {object} socket 
      * @param {id} userId 
+     * @param {object} options
+     *  - getUserInstance: function that returns a new instance of the user
      * @returns {User}
      */
-    connectUser<T = User>(socket, id: string): T {
+    connectUser<T = User>(socket, id: string, options: {
+        getUserInstance?: any
+    } = {}): T {
         const existingUser = this.getUser(id, false)
         if (existingUser) {
             if (existingUser._timeoutDisconnect) {
@@ -183,7 +187,7 @@ export class WorldClass {
             existingUser.$state = UserState.Connected
             return existingUser as any
         }
-        const user = new this.userClass()
+        const user = options.getUserInstance?.(socket) ?? new this.userClass()
         user.id = id
         socket.emit('uid', id)
         this.setUser(user, socket)
@@ -200,7 +204,7 @@ export class WorldClass {
     disconnectUser(userId: string): Promise<void> {
         return new Promise((resolve: any, reject) => {
             const user = this.getUser(userId)
-        
+
             if (!user) return resolve()
 
             user.$state = UserState.Disconnected

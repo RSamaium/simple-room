@@ -122,7 +122,8 @@ export class Room {
             ...this.memoryTotalObject,
             join: firstJoin
         }, <string>room.id)
-        Transmitter.emit(userProxy, packet, room)
+        
+        await Transmitter.emit(userProxy, packet, room)
 
         return true
     }

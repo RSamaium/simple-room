@@ -138,7 +138,7 @@ test('Change Room', () => {
         await World.joinRoom(room1.id, CLIENT_ID)
         user = World.getUser(CLIENT_ID)
         user.position = {x: 10, y: 10}
-        World.send()
+        await World.send()
 
         await World.leaveRoom(room1.id, CLIENT_ID)
 
@@ -147,10 +147,10 @@ test('Change Room', () => {
         user = World.getUser(CLIENT_ID)
         user.position.x = 20
         user.position.y = 20
-        World.send()
+        await World.send()
     })
 })
 
-// afterEach(() => {
-//     World.clear()
-// })
+afterEach(() => {
+    World.clear()
+})

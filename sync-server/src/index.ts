@@ -6,6 +6,7 @@ import { User } from './user'
 import { Transmitter } from './transmitter'
 import MockSocketIo from './testing/mock-socket'
 import { Utils } from './utils'
+import { Transport } from './transports/socket'
 
 export {
     World,
@@ -20,5 +21,6 @@ export {
     User,
     Transmitter,
     MockSocketIo,
-    Utils
+    Utils,
+    Transport
 }
