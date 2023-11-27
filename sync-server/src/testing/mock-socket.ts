@@ -36,23 +36,35 @@ class MiddlewareHandler {
 
 
 class MockIo {
-    events: Map<string, any> = new Map()
+    events: Map<string, any[]> = new Map()
+    eventsOnce: Map<string, any> = new Map()
 
     on(name: string, value) {
-        this.events.set(name, value)
+        this.events.set(name, [...(this.events.get(name) || []), value])
     }
 
     off(name: string) {
+        if (this.eventsOnce.has(name)) {
+            this.eventsOnce.delete(name)
+            return
+        }
         this.events.delete(name)
     }
 
     once(name: string, value) {
-        this.on(name, value)
+        this.eventsOnce.set(name, value)
     }
 
     _trigger(name: string, data, client?) {
-        const fn = this.events.get(name)
-        if (fn) fn(data, client)
+        const events = this.events.get(name) || []
+        for (const event of events) {
+            event(data, client)
+        }
+        const eventOnce = this.eventsOnce.get(name)
+        if (eventOnce) {
+            eventOnce(data, client)
+            this.eventsOnce.delete(name)
+        }
     }
 }
 
