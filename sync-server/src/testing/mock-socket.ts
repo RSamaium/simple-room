@@ -1,38 +1,38 @@
 class MiddlewareHandler {
     middlewares: any[] = [];
-  
+
     use(middleware) {
-      this.middlewares.push(middleware);
+        this.middlewares.push(middleware);
     }
-  
-    run(socket, finalCallback = (err?) => {}) {
-      let index = 0;
-  
-      const next = (err?) => {
- 
-        if (err) {
-          finalCallback(err);
-          return;
-        }
-  
-        if (index >= this.middlewares.length) {
-          finalCallback();
-          return;
-        }
-  
-        const middleware = this.middlewares[index];
-        index += 1;
-  
-        middleware(socket, next);
-      };
-  
-      next();
+
+    run(socket, finalCallback = (err?) => { }) {
+        let index = 0;
+
+        const next = (err?) => {
+
+            if (err) {
+                finalCallback(err);
+                return;
+            }
+
+            if (index >= this.middlewares.length) {
+                finalCallback();
+                return;
+            }
+
+            const middleware = this.middlewares[index];
+            index += 1;
+
+            middleware(socket, next);
+        };
+
+        next();
     }
 
     clear() {
         this.middlewares = []
     }
-  }
+}
 
 
 class MockIo {
@@ -68,28 +68,18 @@ class MockIo {
     }
 }
 
-class MockSocket {
+class MockSocket extends MockIo {
     id: string
-    client: any = {}
     middlewares = new MiddlewareHandler()
 
-    constructor(private io: any, public handshake, private fakeId?: string) {
-        this.id = fakeId ?? ''+Math.random()
+    constructor(public handshake, private client) {
+        super()
+        this.id = client.fakeId ?? '' + Math.random()
         this.client.id = this.id
-    }
-    
-    on(name: string, value) {
-        this.io.on(name, value, this.id)
-        return this
-    }
-
-    once(name: string, value) {
-        this.io.once(name, value, this.id)
-        return this
     }
 
     emit(name: string, data) {
-        this.io.emit(name, data, this.id)
+        this.client._trigger(name, data)
     }
 
     removeAllListeners(name: string) {
@@ -98,10 +88,6 @@ class MockSocket {
 
     use(cb: (packet, next) => void) {
         this.middlewares.use(cb)
-    }
-
-    off(name: string) {
-        this.io.off(name, this.id)
     }
 
     disconnect() { }
@@ -115,8 +101,8 @@ class MockClientIo extends MockIo {
         super()
     }
 
-    connection(handshake?: any) {
-        this._socket = serverIo.connection(this, handshake)
+    async connection(handshake?: any) {
+        this._socket = await serverIo.connection(this, handshake)
         this._trigger('connect', undefined)
         return this
     }
@@ -128,7 +114,7 @@ class MockClientIo extends MockIo {
                 this._trigger('error', err)
                 return
             }
-            serverIo._trigger(name, data, this)
+            serverIo.emit(name, data, this.id)
         })
         return this
     }
@@ -139,21 +125,23 @@ class MockClientIo extends MockIo {
 }
 
 class MockServerIo extends MockIo {
-    private clients: Map<string, MockClientIo> = new Map()
+    private clients: Map<string, MockSocket> = new Map()
     private middlewares = new MiddlewareHandler()
 
-    connection(client, handshake) {
-        const socket = new MockSocket(this, handshake, client.fakeId)
-        this.clients.set(socket.id, client)
-        client.id = socket.id
-        this.middlewares.run(socket, (err) => {
-            if (err) {
-                client._trigger('error', err)
-                return
-            }
-            this._trigger('connection', socket)
+    connection(client, handshake): Promise<MockSocket> {
+        return new Promise((resolve, reject) => {
+            const socket = new MockSocket(handshake, client)
+            this.clients.set(socket.id, socket)
+            client.id = socket.id
+            this.middlewares.run(socket, (err) => {
+                if (err) {
+                    client._trigger('error', err)
+                    return
+                }
+                this._trigger('connection', socket)
+                resolve(socket)
+            })
         })
-        return socket
     }
 
     emit(name: string, data, id) {
@@ -165,6 +153,8 @@ class MockServerIo extends MockIo {
     }
 
     clear() {
+        this.events.clear()
+        this.eventsOnce.clear()
         this.clients.clear()
         this.middlewares.clear()
     }

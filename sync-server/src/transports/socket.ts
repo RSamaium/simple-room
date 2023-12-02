@@ -46,11 +46,11 @@ export class Transport extends TransportCommon {
         this.onConnectedCb(socket, id);
     }
 
-    private async use() {
+    private use() {
         const { maxKbpsIncoming, maxKbpsOutgoing, auth } = this.options;
         this.io.use?.(async (socket, next) => {
-
             let playerId
+
             if (auth) {
                 try {
                     playerId = await Utils.resolveValue(auth(socket))

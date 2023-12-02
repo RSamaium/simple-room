@@ -45,6 +45,7 @@ test('Test Auth with promise', () => {
     })
 })
 
+
 test('Test Auth Error', () => {
     const errorFn = vi.fn()
     World.transport(MockSocketIo.serverIo, {
@@ -57,4 +58,3 @@ test('Test Auth Error', () => {
     socket.connection()
     expect(errorFn).toHaveBeenCalled()
 })
-
