@@ -1,7 +1,8 @@
 import { TransportCommon } from './common';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Utils } from '../utils';
+import { BehaviorSubject } from 'rxjs';
+import { Utils } from '../utils';
 import { NotAuthorized } from '../errors/not-authorized';
+import { Buffer } from 'buffer';
 
 export type BandwidthSocket = { incoming: { size: number, timestamp: number }[], outgoing: { size: number, timestamp: number }[] }
 export type BandwidthData = Record<string, BehaviorSubject<BandwidthSocket>>
