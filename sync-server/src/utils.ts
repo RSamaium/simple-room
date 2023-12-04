@@ -50,43 +50,57 @@ export class Utils {
 
     static set(obj, path, value, onlyPlainObject = false) {
         if (Object(obj) !== obj) return obj;
-    
+
         if (typeof path === 'string') {
             path = path.split('.');
         }
-    
+
         let len = path.length;
         if (!len) return obj;
-    
+
         let current = obj;
         for (let i = 0; i < len - 1; i++) {
             let segment = path[i];
             let nextSegment = path[i + 1];
             let isNextNumeric = !isNaN(nextSegment) && isFinite(nextSegment);
-    
+
             if (!current[segment] || typeof current[segment] !== 'object') {
                 current[segment] = (isNextNumeric && !onlyPlainObject) ? [] : {};
             }
-    
+
             current = current[segment];
         }
-    
+
         current[path[len - 1]] = value;
-    
+
         return obj;
     }
 
     static get(obj, path) {
         const keys = path.split('.');
         let current = obj;
-    
+
         for (let key of keys) {
             if (current[key] === undefined) {
                 return undefined;
             }
             current = current[key];
         }
-    
+
         return current;
+    }
+
+    static bufferFrom(input: string | ArrayBuffer | ArrayBufferView): Uint8Array {
+        if (typeof input === 'string') {
+            // If the input is a string, convert it to an ArrayBuffer
+            let encoder = new TextEncoder();
+            return encoder.encode(input);
+        } else if (input instanceof ArrayBuffer || ArrayBuffer.isView(input)) {
+            // If the input is an ArrayBuffer or a view of it, return it as Uint8Array
+            return new Uint8Array(input as ArrayBuffer);
+        } else {
+            // Extend this function for other types of inputs as needed
+            throw new Error('Input type not supported');
+        }
     }
 }

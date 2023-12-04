@@ -2,7 +2,6 @@ import { TransportCommon } from './common';
 import { BehaviorSubject } from 'rxjs';
 import { Utils } from '../utils';
 import { NotAuthorized } from '../errors/not-authorized';
-import { Buffer } from 'buffer/';
 
 export type BandwidthSocket = { incoming: { size: number, timestamp: number }[], outgoing: { size: number, timestamp: number }[] }
 export type BandwidthData = Record<string, BehaviorSubject<BandwidthSocket>>
@@ -70,7 +69,7 @@ export class Transport extends TransportCommon {
             // Intercept incoming messages
             socket.use((packet, nextMiddleware) => {
                 if (packet && packet[1]) {
-                    const packetSize = Buffer.from(JSON.stringify(packet)).length - 2;
+                    const packetSize = Utils.bufferFrom(JSON.stringify(packet)).length - 2;
                     const data = { size: packetSize, timestamp: Date.now() };
 
                     this.updateBandwidthData(playerId, { incoming: data });
@@ -88,7 +87,7 @@ export class Transport extends TransportCommon {
             // Intercept outgoing messages
             const originalEmit = socket.emit;
             socket.emit = (...args) => {
-                const packetSize = Buffer.from(JSON.stringify(args)).length - 2;
+                const packetSize = Utils.bufferFrom(JSON.stringify(args)).length - 2;
                 const data = { size: packetSize, timestamp: Date.now() };
 
                 this.updateBandwidthData(playerId, { outgoing: data });
