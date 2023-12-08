@@ -8,11 +8,23 @@ import { NotAuthorized } from './errors/not-authorized';
 
 const { set, get } = Utils
 
+export interface RoomOptions {
+    /**
+     * If true, the old room will be propagated to the new room when the user changes rooms
+     * @default true
+     * @type {boolean}
+     * @memberof RoomOptions
+     * @since 3.1.0
+     */
+    propagateOldRoom?: boolean
+}
+
 export class Room {
     private proxyRoom: RoomClass
     private memoryTotalObject: object = {}
     private memoryObject: object = {}
     private permanentObject: string[] = []
+    private propagateOldRoom: boolean = true
 
     static readonly propNameUsers: string = 'users'
 
@@ -84,6 +96,12 @@ export class Room {
             masks,
             dict,
             permanentObject
+        }
+    }
+
+    constructor(private options: RoomOptions) { 
+        if (options.propagateOldRoom) {
+            this.propagateOldRoom = options.propagateOldRoom
         }
     }
 
@@ -290,6 +308,7 @@ export class Room {
                 deleteProperty(target, key) {
                     const { fullPath: p, infoDict } = getInfoDict(path, key, dictPath)
                     //target[key]._isDeleted = true
+                    
                     Reflect.deleteProperty(target, key)
                     if (infoDict) self.detectChanges(room, null, p)
                     return true
@@ -359,6 +378,8 @@ export class Room {
             this.memoryObject = {}
         }
 
+        room.$parent = this
+
         this.proxyRoom = room = this.setProxy(room)
         if (this.proxyRoom['onInit']) this.proxyRoom['onInit']()
         return this.proxyRoom
@@ -395,27 +416,33 @@ export class Room {
 
     detectChanges(room: RoomClass, obj: Object | null, path: string): void {
 
+        const change = (room) => {
+            const roomInstance = room.$parent
+            roomInstance.editMemoryObject(path, obj)
+            set(roomInstance.memoryTotalObject, path, obj)
+
+            if (roomInstance.proxyRoom['onChanges']) roomInstance.proxyRoom['onChanges'](roomInstance.memoryObject)
+
+            const id: string = room.id as string
+
+            World.changes.next({
+                ...World.changes.value,
+                [id]: room
+            })
+        }
+
         // If after changing a room, we continue to use the wrong player instance, we ignore the changes made on an old proxy 
         if (obj != null) {
             const [prop, userId] = path.split('.')
             if (prop == 'users') {
-                if (!room.users[userId]) {
+                if (!this.propagateOldRoom && !room.users[userId]) {
                     return
                 }
+                World.forEachUserRooms(userId, change)
+                return
             }
         }
-
-        this.editMemoryObject(path, obj)
-        set(this.memoryTotalObject, path, obj)
-
-        if (this.proxyRoom['onChanges']) this.proxyRoom['onChanges'](this.memoryObject)
-
-        const id: string = room.id as string
-
-        World.changes.next({
-            ...World.changes.value,
-            [id]: room
-        })
+        change(room)
     }
 
     editMemoryObject(path: string, roomOrValue: any): void {

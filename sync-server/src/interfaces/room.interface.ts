@@ -40,4 +40,5 @@ export interface RoomClass {
     } | null
 
     $additionalEmitProperties?: (user: User, packet: Packet) => object
+    $parent: any
 }

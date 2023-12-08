@@ -1,4 +1,4 @@
-import { Room } from './room'
+import { Room, RoomOptions } from './room'
 import { Transmitter } from './transmitter'
 import { Transport, TransportOptions } from './transports/socket'
 import { User, UserState } from './rooms/default'
@@ -223,7 +223,7 @@ export class WorldClass {
                     })
             }
 
-            if (this.timeoutDisconnect == 0) {
+            if (!this.timeoutDisconnect) {
                 leave()
                 return
             }
@@ -308,11 +308,11 @@ export class WorldClass {
      * @param {Class or instance of Class} roomClass 
      * @returns instance of Class
      */
-    addRoom<T = any>(id: string, roomClass): T {
+    addRoom<T = any>(id: string, roomClass, options: RoomOptions = {}): T {
         if (roomClass.constructor.name == 'Function') {
             roomClass = new roomClass()
         }
-        const room = new Room().add(id, roomClass)
+        const room = new Room(options).add(id, roomClass)
         this.rooms.set(id, room)
         if (this.agonesSDK) {
             this.agonesSDK.setLabel('room.id', id)
@@ -355,6 +355,7 @@ export class WorldClass {
      */
     clear() {
         this.rooms.clear()
+        this.changes.next({})
         this.users = {}
         if (this._transport) {
             this._transport.io?.clear?.()
