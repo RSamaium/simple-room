@@ -1,13 +1,13 @@
 import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import { testSend } from './fixture'
-import { EventEmitter } from '@rpgjs/common'
+import MockSocketIo from '../src/testing/mock-socket'
 import { beforeEach, test, expect } from 'vitest'
 
 let room: any
 
 beforeEach(() => {
-    World.transport(new EventEmitter())
+    World.transport(MockSocketIo.serverIo)
     Transmitter.encode = false
 })
 

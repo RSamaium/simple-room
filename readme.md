@@ -84,7 +84,7 @@ room.listen(() => {
 })
 
 World.listen(socket)
-World.join('myroom')
+World.join('myroom') // If server accept with clientCanJoinRoom: true
 
 document.getElementById('actionCount').addEventListener('click', () => {
     World.action('increment')

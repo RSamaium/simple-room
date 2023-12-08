@@ -1,9 +1,10 @@
-import { Room } from './room'
+import { Room, RoomOptions } from './room'
 import { Transmitter } from './transmitter'
-import { Transport } from './transports/socket'
-import { User } from './rooms/default'
+import { Transport, TransportOptions } from './transports/socket'
+import { User, UserState } from './rooms/default'
 import { RoomClass } from './interfaces/room.interface'
 import { BehaviorSubject } from 'rxjs'
+import type { IAgonesOptions, IAgones } from './interfaces/agones.interface'
 
 export class WorldClass {
 
@@ -12,7 +13,12 @@ export class WorldClass {
         [key: string]: User
     } = {}
     private userClass = User
+    timeoutDisconnect: number = 0
     changes: BehaviorSubject<any> = new BehaviorSubject({})
+    private _transport: Transport | null = null
+
+    public agonesSDK: IAgones | null = null
+    public agonesOptions: IAgonesOptions = {}
 
     /**
      * Define user class
@@ -24,32 +30,51 @@ export class WorldClass {
         this.userClass = userClass
     }
 
+    setAgones(agones: IAgones, options: IAgonesOptions = {}) {
+        this.agonesSDK = agones
+        this.agonesOptions = options
+    }
+
     /**
      * Define transportation. You can set socket.io as default
      * 
      * @method transport()
      * @param {object} io
-     * @returns {void}
+     * @returns {Transport}
      */
-    transport(io): void {
-        const transport = new Transport(io)
+    transport(io, options: TransportOptions = {}): Transport {
+        if (options.timeoutDisconnect) {
+            this.timeoutDisconnect = options.timeoutDisconnect
+        }
+        const transport = new Transport(io, options)
         transport.onConnected(this.connectUser.bind(this))
         transport.onDisconnected(this.disconnectUser.bind(this))
         transport.onJoin(this.joinRoom.bind(this))
         transport.onInput((id: string, prop: string, value: any) => {
             this.forEachUserRooms(id, (room: RoomClass, user) => {
-                if (room.$inputs && room.$inputs[prop]) {
-                    room[prop] = value
+                try {
+                    if (room.$inputs && room.$inputs[prop]) {
+                        room[prop] = value
+                    }
+                }
+                catch (err: any) {
+                    Transmitter.error(user, err)
                 }
             })
         })
         transport.onAction((id: string, name: string, value: any) => {
             this.forEachUserRooms(id, async (room, user) => {
                 if (room.$actions && room.$actions[name]) {
-                    room[name](user, value)
+                    try {
+                        room[name](user, value)
+                    }
+                    catch (err: any) {
+                        Transmitter.error(user, err)
+                    }
                 }
             })
         })
+        return this._transport = transport
     }
 
     /**
@@ -69,7 +94,7 @@ export class WorldClass {
      * @returns {void}
      */
     forEachUserRooms<T = User>(userId: string, cb: (room: RoomClass, user: T) => void): void {
-        const user = this.getUser(userId)
+        const user = this.getUser(userId, true)
         if (!user) return
         for (let roomId of user._rooms) {
             const room = this.getRoom(roomId) as RoomClass
@@ -77,12 +102,12 @@ export class WorldClass {
         }
     }
 
-     /**
-     * Retrieves all users in the world
-     * 
-     * @method getUsers()
-     * @returns { {[id: string]: User} }
-     */
+    /**
+    * Retrieves all users in the world
+    * 
+    * @method getUsers()
+    * @returns { {[id: string]: User} }
+    */
     getUsers<T = User>(): { [id: string]: T } {
         return this.users as any
     }
@@ -97,7 +122,7 @@ export class WorldClass {
     getUser<T = User>(id: string, getProxy: boolean = true): T | null {
         if (!this.users[id]) return null
         if (getProxy && this.users[id]['proxy']) {
-            return this.users[id]['proxy'] 
+            return this.users[id]['proxy']
         }
         return this.users[id] as any
     }
@@ -109,13 +134,17 @@ export class WorldClass {
         return this.users[user.id]
     }
 
+    get nbUsers(): number {
+        return Object.keys(this.users).length
+    }
+
     /**
      * Send the packages to the rooms. 
      * 
      * @method send()
      */
-    send(): void {
-        this.rooms.forEach((room: any, id: string) => {
+    async send(): Promise<void> {
+        for (let [_, room] of this.rooms) {
             const obj = room.$currentState()
             if (Object.keys(obj).length == 0) {
                 return
@@ -126,12 +155,12 @@ export class WorldClass {
                 const packets = Transmitter.getPackets(room)
                 if (packets) {
                     for (let packet of packets) {
-                        Transmitter.emit(user, packet, room)
+                        await Transmitter.emit(user, packet, room)
                     }
                 }
             }
             room.$clearCurrentState()
-        })
+        }
         Transmitter.clear()
     }
 
@@ -141,10 +170,24 @@ export class WorldClass {
      * @method connectUser()
      * @param {object} socket 
      * @param {id} userId 
+     * @param {object} options
+     *  - getUserInstance: function that returns a new instance of the user
      * @returns {User}
      */
-    connectUser<T = User>(socket, id: string): T {
-        const user = new this.userClass()
+    connectUser<T = User>(socket, id: string, options: {
+        getUserInstance?: any
+    } = {}): T {
+        const existingUser = this.getUser(id, false)
+        if (existingUser) {
+            if (existingUser._timeoutDisconnect) {
+                clearTimeout(existingUser._timeoutDisconnect)
+                delete existingUser._timeoutDisconnect
+            }
+            existingUser._socket = socket
+            existingUser.$state = UserState.Connected
+            return existingUser as any
+        }
+        const user = options.getUserInstance?.(socket) ?? new this.userClass()
         user.id = id
         socket.emit('uid', id)
         this.setUser(user, socket)
@@ -158,17 +201,61 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {void}
      */
-    disconnectUser(userId: string): void {
-        this.forEachUserRooms(userId, (room: RoomClass, user: User) => {
-            if (room.$leave) room.$leave(user)
+    disconnectUser(userId: string): Promise<void> {
+        return new Promise((resolve: any, reject) => {
+            const user = this.getUser(userId)
+
+            if (!user) return resolve()
+
+            user.$state = UserState.Disconnected
+
+            const leave = () => {
+                const leaveAllPromises: Promise<void>[] = []
+                this.forEachUserRooms(userId, async (room: RoomClass, user: User) => {
+                    if (room.$leave) leaveAllPromises.push(room.$leave(user))
+                })
+                delete this.users[userId]
+                Promise.all(leaveAllPromises)
+                    .then(resolve)
+                    .catch(err => {
+                        Transmitter.error(user as User, err)
+                        reject(err)
+                    })
+            }
+
+            if (!this.timeoutDisconnect) {
+                leave()
+                return
+            }
+
+            user._timeoutDisconnect = setTimeout(leave, this.timeoutDisconnect)
         })
-        delete this.users[userId]
     }
 
-    private joinOrLeaveRoom(type: string, roomId: string, userId: string): RoomClass | undefined  {
+    httpUpgrade(httpServer, io) {
+        httpServer.removeAllListeners("upgrade");
+
+        httpServer.on("upgrade", (req: any, socket, head) => {
+            if (req.url.startsWith("/socket.io/")) {
+                io.engine.handleUpgrade(req, socket, head);
+            } else {
+                socket.destroy();
+            }
+        })
+    }
+
+    private async joinOrLeaveRoom(type: string, roomId: string, userId: string): Promise<RoomClass | undefined> {
         const room = this.getRoom(roomId)
         if (!room) return
-        if (room[type]) room[type](this.getUser(userId, false))
+        if (room[type]) {
+            try {
+                await room[type](this.getUser(userId, false))
+            }
+            catch (err: any) {
+                Transmitter.error(this.getUser(userId, false) as User, err)
+                throw err
+            }
+        }
         return room
     }
 
@@ -179,7 +266,7 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {RoomClass | undefined}
      */
-    leaveRoom(roomId: string, userId: string): RoomClass | undefined {
+    async leaveRoom(roomId: string, userId: string): Promise<RoomClass | undefined> {
         return this.joinOrLeaveRoom('$leave', roomId, userId)
     }
 
@@ -190,7 +277,7 @@ export class WorldClass {
      * @param {string} userId 
      * @returns {RoomClass | undefined}
      */
-    joinRoom(roomId: string, userId: string): RoomClass | undefined {
+    async joinRoom(roomId: string, userId: string): Promise<RoomClass | undefined> {
         return this.joinOrLeaveRoom('$join', roomId, userId)
     }
 
@@ -221,13 +308,16 @@ export class WorldClass {
      * @param {Class or instance of Class} roomClass 
      * @returns instance of Class
      */
-    addRoom(id: string, roomClass): any {
+    addRoom<T = any>(id: string, roomClass, options: RoomOptions = {}): T {
         if (roomClass.constructor.name == 'Function') {
             roomClass = new roomClass()
         }
-        const room = new Room().add(id, roomClass)
+        const room = new Room(options).add(id, roomClass)
         this.rooms.set(id, room)
-        return room
+        if (this.agonesSDK) {
+            this.agonesSDK.setLabel('room.id', id)
+        }
+        return room as any
     }
 
     /**
@@ -265,7 +355,11 @@ export class WorldClass {
      */
     clear() {
         this.rooms.clear()
+        this.changes.next({})
         this.users = {}
+        if (this._transport) {
+            this._transport.io?.clear?.()
+        }
     }
 }
 

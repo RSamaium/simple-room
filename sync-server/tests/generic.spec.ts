@@ -1,13 +1,13 @@
 import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
+import MockSocketIo from '../src/testing/mock-socket'
 import { testSend } from './fixture'
-import { EventEmitter } from '@rpgjs/common'
-import { beforeEach, test, expect } from 'vitest'
+import { beforeEach, test, expect, afterEach } from 'vitest'
 
 let room: any
 
 beforeEach(() => {
-    World.transport(new EventEmitter())
+    World.transport(MockSocketIo.serverIo)
     Transmitter.encode = false
 })
 
@@ -132,4 +132,8 @@ test('Test Generic Key with array / multi push', async () => {
 
     expect(room.$currentState()).toHaveProperty('users.test.items.1.nb', 3)
     expect(room.$currentState().users.test.items).not.instanceOf(Array)
+})
+
+afterEach(() => {
+    World.clear()
 })

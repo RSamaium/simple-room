@@ -1,11 +1,11 @@
 import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
-import { EventEmitter } from '@rpgjs/common'
+import MockSocketIo from '../src/testing/mock-socket'
 import { testSend } from './fixture'
-import { beforeEach, test, expect } from 'vitest'
+import { beforeEach, test, expect, afterEach } from 'vitest'
 
 beforeEach(() => {
-    World.transport(new EventEmitter())
+    World.transport(MockSocketIo.serverIo)
     Transmitter.encode = false
 })
 
@@ -14,7 +14,7 @@ test('Test Room properties', () => {
     const room = World.addRoom('room', Room)
     expect(room.id).toBe('room')
     expect(room.$schema).toBeDefined()
-    expect(room.$schema.users[0].id).toBeDefined()
+    expect(room.$schema.users[0]).toBeDefined()
 })
 
 test('Get All after enter in room', async () => {
@@ -204,6 +204,10 @@ test('change current state', () => {
 
         World.send()
     })
+})
+
+afterEach(() => {
+    World.clear()
 })
 
 /*

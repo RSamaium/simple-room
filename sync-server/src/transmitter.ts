@@ -1,11 +1,15 @@
 import { Packet } from './packet'
 import { RoomClass } from './interfaces/room.interface';
 import { User } from './rooms/default';
+import { CustomError } from './errors/error';
+import { Utils } from './utils'
+
+const { get, set } = Utils
 
 class TransmitterClass {
-    
+
     public encode: boolean = true
-    
+
     private packets: {
         [roomId: string]: Packet[]
     } = {}
@@ -37,33 +41,32 @@ class TransmitterClass {
         }
     }
 
-    emit(user: User, packet: Packet, room: RoomClass): void {
-        const send = (packet) => {
-            const lastFramePositions: {
-                frame: number
-                position: unknown
-            } | undefined = user['_lastFramePositions']
-            let pos
-            let lastFrame
-            if (lastFramePositions) {
-                pos = lastFramePositions.position
-                lastFrame = lastFramePositions.frame
-            }
-            const data = { frame: lastFrame, pos }
-            user._socket.emit('w', this.encode ? packet.encode(data) : packet.message(data))
+    error(user: User, error: CustomError | string): void {
+        const err =  error instanceof Error ? error.toObject ? error.toObject() : error.message : error
+        user._socket.emit('error', err)
+    }
+
+    async emit(user: User, packet: Packet, room: RoomClass): Promise<void> {
+        let data = packet.body
+        if (room.$additionalEmitProperties) {
+            let additionalData = await Utils.resolveValue(room.$additionalEmitProperties(user, packet.body))
+            if (additionalData !== undefined) {
+                if (typeof additionalData === 'string') {
+                    additionalData = [additionalData]
+                }
+                if (Array.isArray(additionalData)){
+                    const newData = structuredClone(data)
+                    for (let path of additionalData) {
+                        set(newData, path, get(room, path))
+                    }
+                    data = newData
+                }
+                else {
+                    data = { ...data, ...additionalData }
+                }
+            }       
         }
-        if (room.filterEmit) {
-            const objectPacket = room.filterEmit(user, packet)
-            const promiseObjectPacket = objectPacket as Promise<Packet>
-            if (promiseObjectPacket.then) {
-                promiseObjectPacket.then(send)
-            }
-            else {
-                send(objectPacket)
-            }
-            return
-        }
-        send(packet)
+        user._socket.emit('w', this.encode ? packet.encode(data) : packet.message(data))
     }
 }
 

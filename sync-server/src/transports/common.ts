@@ -7,6 +7,7 @@ export class TransportCommon {
     protected onJoinCb
     protected onInputCb
     protected onActionCb
+    protected onAuthCb
 
     onConnected(cb) {
         this.onConnectedCb = cb
