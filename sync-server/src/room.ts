@@ -99,7 +99,7 @@ export class Room {
         }
     }
 
-    constructor(private options: RoomOptions) { 
+    constructor(private options: RoomOptions) {
         if (options.propagateOldRoom) {
             this.propagateOldRoom = options.propagateOldRoom
         }
@@ -121,15 +121,12 @@ export class Room {
         let firstJoin = !room.users[user.id]
 
         room.users[user.id] = user
-        
+
         const userProxy = World.users[user.id]['proxy']
         userProxy.$state = UserState.Connected
 
         if (firstJoin) {
-            if (!userProxy._rooms) userProxy._rooms = []
-            userProxy._rooms.push(room.id)
-            if (!userProxy.id) userProxy.id = Utils.generateId()
-            if (room['onJoin']) room['onJoin'](userProxy)
+            if (room['onJoin']) await Utils.resolveValue(room['onJoin'](userProxy))
         }
 
         if (this.getUsersLength(room) == 1) {
@@ -140,7 +137,7 @@ export class Room {
             ...this.memoryTotalObject,
             join: firstJoin
         }, <string>room.id)
-        
+
         await Transmitter.emit(userProxy, packet, room)
 
         return true
@@ -221,6 +218,11 @@ export class Room {
                         const valProxy = deepProxy(val, p, genericPath)
                         proxifiedObjects.add(valProxy);
                         if (path == 'users') {
+                            if (!room.users[key]) {
+                                if (!valProxy._rooms) valProxy._rooms = []
+                                valProxy._rooms.push(room.id)
+                                if (!valProxy.id) valProxy.id = Utils.generateId()
+                            }
                             World.users[key]['proxy'] = valProxy
                         }
                         Reflect.set(target, key, val, receiver)
@@ -308,7 +310,7 @@ export class Room {
                 deleteProperty(target, key) {
                     const { fullPath: p, infoDict } = getInfoDict(path, key, dictPath)
                     //target[key]._isDeleted = true
-                    
+
                     Reflect.deleteProperty(target, key)
                     if (infoDict) self.detectChanges(room, null, p)
                     return true

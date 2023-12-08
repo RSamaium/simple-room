@@ -6,12 +6,12 @@ import { beforeEach, test, expect, afterEach, vi } from 'vitest'
 let event, socket
 
 const CLIENT_ID = 'mock'
+let auth = vi.fn()
 
 beforeEach(() => {
+    auth.mockReturnValue(CLIENT_ID)
     World.transport(MockSocketIo.serverIo, {
-        auth() {
-            return CLIENT_ID
-        }
+        auth
     })
     socket = new MockSocketIo.ClientIo(CLIENT_ID)
     socket.connection()
@@ -83,7 +83,7 @@ test('Change Schema', () => {
                 case 1:
                     expect(value.count).toBe(0)
                     break;
-                case 2:
+                case 3:
                     expect(value.countAsync).toEqual(1)
                     resolve()
                     break;
@@ -101,7 +101,6 @@ test('Change Schema', () => {
         World.send()
     })
 })
-
 
 test('Change Room', () => {
     return new Promise(async (resolve: any) => {
@@ -189,7 +188,7 @@ test('Old Proxy, after change Room, propagate values', () => {
         })
 
         let user
-        
+
         await World.joinRoom(room1.id, CLIENT_ID)
         user = World.getUser(CLIENT_ID)
         user.position = { x: 10, y: 10 }
@@ -197,14 +196,13 @@ test('Old Proxy, after change Room, propagate values', () => {
 
         await World.leaveRoom(room1.id, CLIENT_ID)
 
-        
+
         await World.joinRoom(room2.id, CLIENT_ID)
         user.position.x = 20
         user.position.y = 20
         await World.send()
     })
 })
-
 
 test('Disconnect', async () => {
     class Room {
@@ -228,7 +226,7 @@ test('Disconnect', async () => {
     })
 
     let user
-    
+
     await World.joinRoom(room1.id, CLIENT_ID)
     user = World.getUser(CLIENT_ID)
     user.position = { x: 10, y: 10 }
@@ -243,7 +241,42 @@ test('Disconnect', async () => {
 
     expect(watch).toHaveBeenCalledTimes(2)
     expect(changes).toHaveBeenLastCalledWith({})
+
+})
+
+test('Multi User: view client side', async () => {
+    const firstPlayerId = 'first'
+    const secondPlayerId = 'second'
     
+    auth.mockReturnValue(firstPlayerId)
+    const socket1 = new MockSocketIo.ClientIo(firstPlayerId)
+    await socket1.connection()
+    
+    auth.mockReturnValue(secondPlayerId)
+    const socket2 = new MockSocketIo.ClientIo(secondPlayerId)
+    await socket2.connection()
+
+    const watch = vi.fn()
+    socket2.on('w', watch)
+
+    class Room {}
+    const room = World.addRoom('room', Room, {
+        propagateOldRoom: false
+    })
+    await World.joinRoom('room', firstPlayerId)
+    await World.joinRoom('room', secondPlayerId)
+
+    expect(room.users[firstPlayerId]).toBeDefined()
+    expect(room.users[secondPlayerId]).toBeDefined()
+
+    await World.send()
+
+    expect(watch).toHaveBeenCalledTimes(2)
+    expect(watch).toHaveBeenLastCalledWith([
+        'room', 
+        expect.any(Number), 
+        { users: { [firstPlayerId]:  expect.any(Object), [secondPlayerId]: expect.any(Object) } },
+    ], undefined)
 })
 
 afterEach(() => {
