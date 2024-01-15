@@ -147,7 +147,7 @@ export class WorldClass {
         for (let [_, room] of this.rooms) {
             const obj = room.$currentState()
             if (Object.keys(obj).length == 0) {
-                return
+                continue
             }
             Transmitter.addPacket(room, obj)
             for (let id in room.users) {

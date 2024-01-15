@@ -2,10 +2,14 @@ import { World } from '../src/world'
 import { Transmitter } from '../src/transmitter'
 import MockSocketIo from '../src/testing/mock-socket'
 import { testSend } from './fixture'
-import { beforeEach, test, expect, afterEach } from 'vitest'
+import { beforeEach, test, expect, afterEach, vi } from 'vitest'
+
+let auth = vi.fn()
 
 beforeEach(() => {
-    World.transport(MockSocketIo.serverIo)
+    World.transport(MockSocketIo.serverIo, {
+        auth
+    })
     Transmitter.encode = false
 })
 
@@ -204,6 +208,49 @@ test('change current state', () => {
 
         World.send()
     })
+})
+
+test('World send: All Rooms', async () => {
+    class Room {
+        $schema = {
+            test: String
+        }
+        test = 'aa'
+    }
+
+    const firstPlayerId = 'first'
+    const secondPlayerId = 'second'
+
+    auth.mockReturnValue(firstPlayerId)
+    const socket1 = new MockSocketIo.ClientIo(firstPlayerId)
+    await socket1.connection()
+
+    auth.mockReturnValue(secondPlayerId)
+    const socket2 = new MockSocketIo.ClientIo(secondPlayerId)
+    await socket2.connection()
+
+    const room1 = World.addRoom('room1', new Room())
+    const room2 = World.addRoom('room2', new Room())
+
+    const watch = vi.fn()
+    socket2.on('w', watch)
+
+    //await World.joinRoom('room1', firstPlayerId)
+    await World.joinRoom('room2', secondPlayerId)
+
+    await World.send()
+
+    room2.test = 'bb'
+
+    await World.send()
+
+    expect(watch).toHaveBeenCalledTimes(3)
+    expect(watch).toHaveBeenLastCalledWith([
+        'room2', 
+        expect.any(Number), 
+        { test: 'bb' },
+    ], undefined)
+
 })
 
 afterEach(() => {
